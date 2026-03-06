@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shelf
 
-## Getting Started
+Goodreads is a graveyard. Beautiful books deserve better.
 
-First, run the development server:
+Shelf is what happens when you take Letterboxd's obsession with taste and apply it to reading. Log books, write reviews, track your shelf. Then share a gorgeous card of your latest read to Instagram or X in one tap.
+
+Built for readers who actually care about what they read.
+
+## Stack
+
+- **Frontend/API** — Next.js 15 (App Router), TypeScript, Tailwind
+- **Database** — Neon Postgres + Drizzle ORM
+- **Book data** — Google Books API (primary) + Open Library (fallback)
+- **Cover storage** — Cloudflare R2 (fetch once, serve forever, zero egress fees)
+- **Deployment** — Vercel (frontend) + Railway (background workers)
+
+## How book data works
+
+No 30M book pre-load. The catalog grows as users interact with the app:
+
+1. User searches "dune" → hits Google Books API → returns results
+2. User logs a book → we fetch full metadata + cover
+3. Cover downloaded once → uploaded to Cloudflare R2
+4. Book persisted in Neon Postgres permanently
+5. Every future search for that book → instant, from our own DB
+
+## Local setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+# Clone and install
+git clone https://github.com/Jinstronda/shelf
+cd shelf/shelf-app
+bun install
+
+# Configure environment
+cp .env.local.example .env.local
+# Fill in: NEON_DATABASE_URL, GOOGLE_BOOKS_API_KEY, R2_* vars
+
+# Push DB schema
+bunx dotenv-cli -e .env.local -- bunx drizzle-kit push
+
+# Run dev server
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3001.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEON_DATABASE_URL          # Neon Postgres connection string
+GOOGLE_BOOKS_API_KEY       # Google Cloud Console → Books API
+R2_ACCOUNT_ID              # Cloudflare account ID
+R2_ACCESS_KEY_ID           # R2 API token access key
+R2_SECRET_ACCESS_KEY       # R2 API token secret
+R2_BUCKET_NAME             # R2 bucket name (e.g. shelf-covers)
+R2_PUBLIC_URL              # Public R2 bucket URL
+```
 
-## Learn More
+## API routes
 
-To learn more about Next.js, take a look at the following resources:
+```
+GET  /api/search?q=dune         Search books (Google Books + Open Library fallback)
+POST /api/books/add             Persist a book to DB + cache cover to R2
+GET  /api/books/:id             Get a book by UUID
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Pages
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+/                   Landing page with book strips
+/book/:id           Book detail — log, rate, review, share card
+/search?q=dune      Full search results page
+```
