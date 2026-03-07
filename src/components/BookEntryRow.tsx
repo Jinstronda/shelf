@@ -26,6 +26,9 @@ export function BookEntryRow({ entry }: Props) {
             fontSize: 14, fontWeight: 600, color: '#ccc',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{entry.book.title}</span>
+          {entry.status === 'dnf' && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#8B4513', flexShrink: 0 }}>DNF</span>
+          )}
           <span style={{ fontSize: 12, color: '#456', flexShrink: 0 }}>
             {entry.book.authors[0]}
           </span>

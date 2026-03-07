@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt } = body
+  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt, dnfReason } = body
 
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
@@ -19,8 +19,11 @@ export async function POST(req: NextRequest) {
   if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 10)) {
     return NextResponse.json({ error: 'rating must be 1-10' }, { status: 400 })
   }
-  if (status && !['read', 'reading', 'want'].includes(status)) {
-    return NextResponse.json({ error: 'status must be read, reading, or want' }, { status: 400 })
+  if (status && !['read', 'reading', 'want', 'dnf'].includes(status)) {
+    return NextResponse.json({ error: 'status must be read, reading, want, or dnf' }, { status: 400 })
+  }
+  if (dnfReason && dnfReason.length > 500) {
+    return NextResponse.json({ error: 'dnfReason must be 500 characters or less' }, { status: 400 })
   }
   if (review && review.length > 5000) {
     return NextResponse.json({ error: 'review must be 5000 characters or less' }, { status: 400 })
@@ -49,6 +52,7 @@ export async function POST(req: NextRequest) {
         spoiler: spoiler ?? false,
         pagesRead: pagesRead ?? null,
         readAt: readAt ?? null,
+        dnfReason: dnfReason ?? null,
       })
       .onConflictDoUpdate({
         target: [userBooks.userId, userBooks.bookId],
@@ -61,6 +65,7 @@ export async function POST(req: NextRequest) {
           spoiler: spoiler !== undefined ? (spoiler ?? false) : sql`user_books.spoiler`,
           pagesRead: pagesRead !== undefined ? (pagesRead ?? sql`user_books.pages_read`) : sql`user_books.pages_read`,
           readAt: readAt !== undefined ? (readAt ?? sql`user_books.read_at`) : sql`user_books.read_at`,
+          dnfReason: dnfReason !== undefined ? (dnfReason ?? sql`user_books.dnf_reason`) : sql`user_books.dnf_reason`,
           updatedAt: new Date(),
         },
       })
@@ -92,7 +97,7 @@ export async function GET(req: NextRequest) {
 
   const statusFilter = req.nextUrl.searchParams.get('status')
   const conditions = [eq(userBooks.userId, session.user.id)]
-  if (statusFilter && ['read', 'reading', 'want'].includes(statusFilter)) {
+  if (statusFilter && ['read', 'reading', 'want', 'dnf'].includes(statusFilter)) {
     conditions.push(eq(userBooks.status, statusFilter))
   }
 

@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userBooks, books, readingGoals } from '@/lib/schema'
-import { eq, and, gte, count } from 'drizzle-orm'
+import { eq, and, gte, count, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -11,6 +11,7 @@ import { getReadingStreak } from '@/lib/queries'
 import { ReadingStreak } from '@/components/ReadingStreak'
 import { ReadingCalendar } from '@/components/ReadingCalendar'
 import { ChallengesCard } from '@/components/ChallengesCard'
+import { GenreChart } from '@/components/GenreChart'
 import { RATING_MAP } from '@/lib/constants'
 import type { Metadata } from 'next'
 
@@ -25,7 +26,7 @@ export default async function StatsPage() {
 
   const oneYearAgo = new Date(Date.now() - 365 * 86400000)
 
-  const [rows, [allTimeCount], streak, calendarRows] = await Promise.all([
+  const [rows, [allTimeCount], streak, calendarRows, genreRows] = await Promise.all([
     db.select().from(userBooks)
       .where(and(
         eq(userBooks.userId, session.user.id!),
@@ -46,6 +47,13 @@ export default async function StatsPage() {
         eq(userBooks.status, 'read'),
         gte(userBooks.updatedAt, oneYearAgo),
       )),
+    db.execute(sql`
+      SELECT g AS genre, COUNT(*)::int AS count
+      FROM user_books ub
+      JOIN books b ON b.id = ub.book_id, unnest(b.genres) AS g
+      WHERE ub.user_id = ${session.user.id!} AND ub.status = 'read'
+      GROUP BY g ORDER BY count DESC LIMIT 15
+    `),
   ])
 
   const thisYear = rows.map(r => ({ ...r.user_books, book: r.books }))
@@ -62,6 +70,8 @@ export default async function StatsPage() {
     .from(readingGoals)
     .where(and(eq(readingGoals.userId, session.user.id!), eq(readingGoals.year, year)))
     .limit(1)
+
+  const genreData = genreRows.rows as { genre: string; count: number }[]
 
   const calendarData: Record<string, number> = {}
   for (const r of calendarRows) {
@@ -121,6 +131,8 @@ export default async function StatsPage() {
           />
 
           <ChallengesCard />
+
+          <GenreChart data={genreData} />
 
           {thisYear.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>

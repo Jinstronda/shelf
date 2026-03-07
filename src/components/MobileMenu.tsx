@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: '/lists', label: 'Lists' },
   { href: '/journal', label: 'Journal' },
   { href: '/quotes', label: 'Quotes' },
+  { href: '/tags', label: 'Tags' },
   { href: '/import', label: 'Import' },
   { href: '/members', label: 'Members' },
 ]

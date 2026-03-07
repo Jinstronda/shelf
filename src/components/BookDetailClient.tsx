@@ -5,6 +5,7 @@ import { ShareCardModal } from './ShareCardModal'
 import { ReviewList } from './ReviewList'
 import { LogBookForm } from './LogBookForm'
 import { QuotesSection } from './QuotesSection'
+import { TagsInput } from './TagsInput'
 import type { BookResult } from '@/lib/google-books'
 import type { Review } from './ReviewList'
 import type { UserLog } from './LogBookForm'
@@ -36,9 +37,10 @@ interface Props {
   authorBooks: AuthorBook[]
   userLog: UserLog | null
   userQuotes: BookQuote[]
+  userTags: string[]
 }
 
-export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes }: Props) {
+export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags }: Props) {
   const [shareData, setShareData] = useState<{ rating: number | null, review: string } | null>(null)
 
   return (
@@ -119,6 +121,10 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
 
             {bookDbId && (
               <QuotesSection bookDbId={bookDbId} initialQuotes={userQuotes} />
+            )}
+
+            {bookDbId && userTags && (
+              <TagsInput bookDbId={bookDbId} initialTags={userTags} />
             )}
 
             {totalLogs > 0 && (

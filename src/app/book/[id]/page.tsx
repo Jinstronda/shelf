@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getGoogleBook } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
 import { db } from '@/lib/db'
-import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes } from '@/lib/schema'
+import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes, bookTags } from '@/lib/schema'
 import { eq, and, desc, ne, sql, count } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { notFound } from 'next/navigation'
@@ -154,6 +154,7 @@ async function getUserLog(bookId: string | null, userId: string) {
         liked: userBooks.liked,
         spoiler: userBooks.spoiler,
         readAt: userBooks.readAt,
+        dnfReason: userBooks.dnfReason,
       })
       .from(userBooks)
       .where(and(eq(userBooks.bookId, bookId), eq(userBooks.userId, userId)))
@@ -211,6 +212,21 @@ async function getUserQuotes(bookId: string | null, userId: string) {
   }
 }
 
+async function getUserTags(bookId: string | null, userId: string) {
+  try {
+    if (!bookId) return []
+    const rows = await db
+      .select({ tag: bookTags.tag })
+      .from(bookTags)
+      .where(and(eq(bookTags.bookId, bookId), eq(bookTags.userId, userId)))
+      .orderBy(bookTags.tag)
+    return rows.map(r => r.tag)
+  } catch (err) {
+    console.error('getUserTags:', err)
+    return []
+  }
+}
+
 export default async function BookPage({ params }: Props) {
   const { id } = await params
   const [book, session] = await Promise.all([fetchBook(id), auth()])
@@ -225,12 +241,13 @@ export default async function BookPage({ params }: Props) {
 
   const primaryAuthor = book.authors[0] ?? null
 
-  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes] = await Promise.all([
+  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes, userTags] = await Promise.all([
     getReviews(bookDbId),
     getRelatedBooks(bookDbId),
     session?.user?.id ? getUserLog(bookDbId, session.user.id) : null,
     primaryAuthor && bookDbId ? getAuthorBooks(primaryAuthor, bookDbId) : [],
     session?.user?.id ? getUserQuotes(bookDbId, session.user.id) : [],
+    session?.user?.id ? getUserTags(bookDbId, session.user.id) : [],
   ])
   return (
     <BookDetailClient
@@ -244,6 +261,7 @@ export default async function BookPage({ params }: Props) {
       authorBooks={authorBooks}
       userLog={userLog}
       userQuotes={userQuotes}
+      userTags={userTags}
     />
   )
 }

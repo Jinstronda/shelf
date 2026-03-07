@@ -34,6 +34,7 @@ export const userBooks = pgTable('user_books', {
   readAt:    date('read_at'),
   liked:     boolean('liked').default(false),
   spoiler:   boolean('spoiler').default(false),
+  dnfReason: text('dnf_reason'),
   pagesRead: integer('pages_read'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -165,6 +166,17 @@ export const challenges = pgTable('challenges', {
   uniqueChallenge: uniqueIndex('challenges_unique').on(t.userId, t.type, t.year, t.month),
 }))
 
+export const bookTags = pgTable('book_tags', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    text('user_id').notNull(),
+  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  tag:       text('tag').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniqueTag: uniqueIndex('book_tags_unique').on(t.userId, t.bookId, t.tag),
+  userIdx: index('book_tags_user_idx').on(t.userId),
+}))
+
 export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
@@ -178,3 +190,4 @@ export type ReviewLike    = typeof reviewLikes.$inferSelect
 export type ReviewComment = typeof reviewComments.$inferSelect
 export type Challenge     = typeof challenges.$inferSelect
 export type BookQuote     = typeof bookQuotes.$inferSelect
+export type BookTag       = typeof bookTags.$inferSelect

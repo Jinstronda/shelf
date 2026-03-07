@@ -11,6 +11,7 @@ export interface UserLog {
   liked: boolean | null
   spoiler: boolean | null
   readAt: string | null
+  dnfReason: string | null
 }
 
 interface Props {
@@ -24,7 +25,8 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
   const [rating, setRating]   = useState<number | null>(userLog?.rating ?? null)
   const [review, setReview]   = useState(userLog?.review ?? '')
   const [notes, setNotes]     = useState(userLog?.notes ?? '')
-  const [status, setStatus]   = useState<'read' | 'reading' | 'want'>((userLog?.status as 'read' | 'reading' | 'want') ?? 'read')
+  const [status, setStatus]   = useState<'read' | 'reading' | 'want' | 'dnf'>((userLog?.status as 'read' | 'reading' | 'want' | 'dnf') ?? 'read')
+  const [dnfReason, setDnfReason] = useState(userLog?.dnfReason ?? '')
   const [liked, setLiked]     = useState(userLog?.liked ?? false)
   const [spoiler, setSpoiler] = useState(userLog?.spoiler ?? false)
   const [readAt, setReadAt]   = useState<string | null>(userLog?.readAt ?? (userLog?.status === 'read' || !userLog ? new Date().toISOString().slice(0, 10) : null))
@@ -77,6 +79,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
           liked,
           spoiler,
           readAt: status === 'read' ? readAt : null,
+          dnfReason: status === 'dnf' ? (dnfReason || null) : null,
         }),
       })
       if (!logRes.ok) throw new Error('Failed to save log')
@@ -114,7 +117,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#567', textTransform: 'uppercase', marginBottom: 20 }}>Log this book</div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['read', 'reading', 'want'] as const).map(s => (
+        {(['read', 'reading', 'want', 'dnf'] as const).map(s => (
           <button key={s} onClick={() => {
             setStatus(s)
             if (s === 'read' && !readAt) setReadAt(new Date().toISOString().slice(0, 10))
@@ -122,14 +125,34 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
           }} style={{
             padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
             fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-            background: status === s ? 'var(--copper)' : 'rgba(255,255,255,0.07)',
+            background: status === s ? (s === 'dnf' ? '#8B4513' : 'var(--copper)') : 'rgba(255,255,255,0.07)',
             color: status === s ? '#fff' : '#789',
             transition: 'all 0.15s',
           }}>
-            {s === 'read' ? 'Read' : s === 'reading' ? 'Reading' : 'Want to Read'}
+            {s === 'read' ? 'Read' : s === 'reading' ? 'Reading' : s === 'want' ? 'Want to Read' : 'DNF'}
           </button>
         ))}
       </div>
+
+      {status === 'dnf' && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, color: '#567', marginBottom: 8 }}>Reason (optional)</div>
+          <textarea
+            value={dnfReason}
+            onChange={e => setDnfReason(e.target.value)}
+            placeholder="Why did you stop reading?"
+            rows={2}
+            maxLength={500}
+            style={{
+              width: '100%', background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4,
+              padding: '10px 12px', color: '#e8e0d4', fontSize: 14,
+              fontFamily: 'inherit', lineHeight: 1.6, resize: 'vertical',
+              outline: 'none',
+            }}
+          />
+        </div>
+      )}
 
       {status === 'read' && (
         <div style={{ marginBottom: 16 }}>

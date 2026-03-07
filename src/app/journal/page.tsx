@@ -9,7 +9,7 @@ import { BookEntryRow } from '@/components/BookEntryRow'
 import { DiaryCalendar } from '@/components/DiaryCalendar'
 import type { Metadata } from 'next'
 
-type Status = 'read' | 'reading' | 'want'
+type Status = 'read' | 'reading' | 'want' | 'dnf'
 type Sort = 'newest' | 'oldest' | 'rating'
 
 interface Props {
@@ -18,9 +18,9 @@ interface Props {
 
 const PAGE_SIZE = 30
 
-const VALID_STATUSES: Status[] = ['read', 'reading', 'want']
+const VALID_STATUSES: Status[] = ['read', 'reading', 'want', 'dnf']
 const VALID_SORTS: Sort[] = ['newest', 'oldest', 'rating']
-const STATUS_LABELS: Record<Status, string> = { read: 'Read', reading: 'Reading', want: 'Want' }
+const STATUS_LABELS: Record<Status, string> = { read: 'Read', reading: 'Reading', want: 'Want', dnf: 'DNF' }
 const SORT_LABELS: Record<Sort, string> = { newest: 'Newest', oldest: 'Oldest', rating: 'Rating' }
 
 function buildFilterHref(base: Record<string, string>, key: string, value: string | null) {
