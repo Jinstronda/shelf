@@ -1,7 +1,9 @@
 'use client'
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { NavScroll } from './NavScroll'
 import { SearchBar } from './SearchBar'
+import { AuthNav } from './AuthNav'
 import type { BookResult } from '@/lib/google-books'
 
 const RATINGS = [
@@ -41,16 +43,45 @@ export function BookDetailClient({ book }: { book: BookResult }) {
   const [liked, setLiked]     = useState(false)
   const [hover, setHover]     = useState<number | null>(null)
   const [saved, setSaved]     = useState(false)
+  const [saving, setSaving]   = useState(false)
   const [sharing, setSharing] = useState(false)
+  const { data: session } = useSession()
 
   const displayRating = hover ?? rating
   const ratingLabel = displayRating ? RATINGS.find(r => r.value === displayRating)?.label : null
 
   async function handleLog() {
-    if (!rating) return
-    // TODO: POST to /api/user-books once auth is set up
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (!rating || !session?.user) return
+    setSaving(true)
+    try {
+      // Persist book to DB first
+      const addRes = await fetch('/api/books/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ googleId: book.googleId }),
+      })
+      if (!addRes.ok) throw new Error('Failed to add book')
+      const dbBook = await addRes.json()
+
+      // Log user's rating/review
+      await fetch('/api/user-books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookId: dbBook.id,
+          status,
+          rating,
+          review: review || null,
+          liked,
+        }),
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -61,8 +92,7 @@ export function BookDetailClient({ book }: { book: BookResult }) {
           <span className="nav-logo-text">Shelf</span>
         </a>
         <ul className="nav-links">
-          <li className="hl"><a href="/sign-in">Sign In</a></li>
-          <li className="hl"><a href="/create-account">Create Account</a></li>
+          <AuthNav />
           <li><a href="/books">Books</a></li>
           <li><a href="/lists">Lists</a></li>
           <li><a href="/members">Members</a></li>
@@ -220,12 +250,13 @@ export function BookDetailClient({ book }: { book: BookResult }) {
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleLog} style={{
-                  background: 'var(--copper)', color: '#fff', border: 'none',
+                <button onClick={handleLog} disabled={saving || !session?.user} style={{
+                  background: saved ? '#2a5a3a' : 'var(--copper)', color: '#fff', border: 'none',
                   borderRadius: 4, padding: '10px 24px', fontSize: 13, fontWeight: 700,
-                  fontFamily: 'inherit', cursor: 'pointer', transition: 'background 0.15s',
+                  fontFamily: 'inherit', cursor: session?.user ? 'pointer' : 'not-allowed',
+                  transition: 'background 0.15s', opacity: saving ? 0.6 : 1,
                 }}>
-                  {saved ? 'Saved!' : 'Log Book'}
+                  {saving ? 'Saving...' : saved ? 'Saved!' : !session?.user ? 'Sign in to log' : 'Log Book'}
                 </button>
                 <button onClick={() => setSharing(true)} style={{
                   background: 'rgba(255,255,255,0.07)', color: '#9ab', border: 'none',

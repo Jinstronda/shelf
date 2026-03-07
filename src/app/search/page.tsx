@@ -3,6 +3,7 @@ import { searchOpenLibrary } from '@/lib/open-library'
 import { NavScroll } from '@/components/NavScroll'
 import { SearchBar } from '@/components/SearchBar'
 import { BookCard } from '@/components/BookCard'
+import { AuthNav } from '@/components/AuthNav'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -52,8 +53,7 @@ export default async function SearchPage({ searchParams }: Props) {
           <span className="nav-logo-text">Shelf</span>
         </a>
         <ul className="nav-links">
-          <li className="hl"><a href="/sign-in">Sign In</a></li>
-          <li className="hl"><a href="/create-account">Create Account</a></li>
+          <AuthNav />
           <li><a href="/books">Books</a></li>
           <li><a href="/lists">Lists</a></li>
           <li><a href="/members">Members</a></li>

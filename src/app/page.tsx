@@ -1,6 +1,7 @@
 import { SearchBar } from '@/components/SearchBar'
 import { NavScroll } from '@/components/NavScroll'
 import { BookCard } from '@/components/BookCard'
+import { AuthNav } from '@/components/AuthNav'
 
 const BOOKS_ROW1 = [
   { isbn: '0679728759', title: 'Blood Meridian',         author: 'Cormac McCarthy',  rating: '★★★★★', cv: 'cv1' },
@@ -59,8 +60,7 @@ export default function HomePage() {
           <span className="nav-logo-text">Shelf</span>
         </a>
         <ul className="nav-links">
-          <li className="hl"><a href="/sign-in">Sign In</a></li>
-          <li className="hl"><a href="/create-account">Create Account</a></li>
+          <AuthNav />
           <li><a href="/books">Books</a></li>
           <li><a href="/lists">Lists</a></li>
           <li><a href="/members">Members</a></li>
