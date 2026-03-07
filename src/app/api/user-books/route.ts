@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
   }
+  if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 10)) {
+    return NextResponse.json({ error: 'rating must be 1-10' }, { status: 400 })
+  }
+  if (status && !['read', 'reading', 'want'].includes(status)) {
+    return NextResponse.json({ error: 'status must be read, reading, or want' }, { status: 400 })
+  }
 
   // Check book exists
   const [book] = await db.select().from(books).where(eq(books.id, bookId)).limit(1)

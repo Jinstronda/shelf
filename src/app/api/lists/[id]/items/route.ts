@@ -49,6 +49,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: listId } = await params
+  const session = await auth()
+
+  const [list] = await db.select().from(lists).where(eq(lists.id, listId)).limit(1)
+  if (!list) {
+    return NextResponse.json({ error: 'List not found' }, { status: 404 })
+  }
+  if (!list.isPublic && list.userId !== session?.user?.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const items = await db
     .select()

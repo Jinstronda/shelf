@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { lists, listItems, books } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, count } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -52,11 +52,11 @@ export async function GET() {
         .limit(4)
 
       const [countRow] = await db
-        .select({ count: listItems.id })
+        .select({ total: count() })
         .from(listItems)
         .where(eq(listItems.listId, list.id))
 
-      return { ...list, itemCount: countRow ? 1 : 0, previews: items }
+      return { ...list, itemCount: countRow?.total ?? 0, previews: items }
     })
   )
 
