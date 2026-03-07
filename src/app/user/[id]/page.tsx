@@ -42,7 +42,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   const isOwnProfile = session?.user?.id === id
 
-  const [rows, [followerCount], [followingCount], isFollowingResult, favRows, reviewRows] = await Promise.all([
+  const [rows, [followerCount], [followingCount], isFollowingResult, favRows, reviewRows, genreRows, ratingRows] = await Promise.all([
     db
       .select()
       .from(userBooks)
@@ -75,6 +75,19 @@ export default async function UserProfilePage({ params }: Props) {
       .where(and(eq(userBooks.userId, id), isNotNull(userBooks.review)))
       .orderBy(desc(userBooks.updatedAt))
       .limit(20),
+    db.execute(sql`
+      SELECT g AS genre, COUNT(*)::int AS count
+      FROM user_books ub
+      JOIN books b ON b.id = ub.book_id, unnest(b.genres) AS g
+      WHERE ub.user_id = ${id} AND ub.status = 'read'
+      GROUP BY g ORDER BY count DESC LIMIT 8
+    `),
+    db.execute(sql`
+      SELECT rating, COUNT(*)::int AS count
+      FROM user_books
+      WHERE user_id = ${id} AND rating IS NOT NULL
+      GROUP BY rating ORDER BY rating ASC
+    `),
   ])
 
   const logged = rows.map(r => ({ ...r.user_books, book: r.books }))
@@ -90,6 +103,17 @@ export default async function UserProfilePage({ params }: Props) {
   const avgRating = ratedThisYear.length > 0
     ? (ratedThisYear.reduce((sum, r) => sum + r.rating!, 0) / ratedThisYear.length).toFixed(1)
     : null
+
+  const ratingCounts = new Map<number, number>()
+  for (const r of ratingRows.rows as unknown as { rating: number; count: number }[]) {
+    ratingCounts.set(r.rating, r.count)
+  }
+  const ratingBars = Array.from({ length: 10 }, (_, i) => ({
+    rating: i + 1,
+    count: ratingCounts.get(i + 1) ?? 0,
+    label: RATING_MAP[i + 1] ?? '',
+  }))
+  const maxRatingCount = Math.max(...ratingBars.map(b => b.count), 1)
 
   return (
     <>
@@ -125,6 +149,9 @@ export default async function UserProfilePage({ params }: Props) {
                 <span>{logged.length} {logged.length === 1 ? 'book' : 'books'}</span>
                 <a href={`/user/${id}/followers`} style={{ color: 'inherit', textDecoration: 'none' }}>{followerCount.total} {followerCount.total === 1 ? 'follower' : 'followers'}</a>
                 <a href={`/user/${id}/following`} style={{ color: 'inherit', textDecoration: 'none' }}>{followingCount.total} following</a>
+                {user.createdAt && (
+                  <span>Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                )}
               </div>
               {user.bio && (
                 <div style={{ fontSize: 14, color: '#9ab', marginTop: 8, lineHeight: 1.6 }}>
@@ -173,6 +200,66 @@ export default async function UserProfilePage({ params }: Props) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {(genreRows.rows as unknown as { genre: string; count: number }[]).length > 0 && (
+            <div style={{ marginBottom: 40 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                color: '#567', textTransform: 'uppercase' as const, marginBottom: 14,
+              }}>
+                Favorite Genres
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {(genreRows.rows as unknown as { genre: string; count: number }[]).map(g => (
+                  <span key={g.genre} style={{
+                    background: 'rgba(196,96,58,0.12)', color: '#C4603A',
+                    borderRadius: 4, padding: '6px 12px',
+                    fontSize: 13, fontWeight: 600,
+                  }}>
+                    {g.genre} ({g.count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {ratingCounts.size > 0 && (
+            <div style={{ marginBottom: 40 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                color: '#567', textTransform: 'uppercase' as const, marginBottom: 14,
+              }}>
+                Rating Distribution
+              </div>
+              <div style={{
+                background: '#1c2028', borderRadius: 6, padding: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 60 }}>
+                  {ratingBars.map(bar => (
+                    <div key={bar.rating} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                      <div style={{
+                        width: '100%',
+                        height: bar.count > 0 ? Math.max((bar.count / maxRatingCount) * 60, 3) : 3,
+                        background: '#C4603A',
+                        opacity: bar.count > 0 ? 0.3 + (bar.count / maxRatingCount) * 0.7 : 0.1,
+                        borderRadius: 2,
+                      }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                  {ratingBars.map(bar => (
+                    <div key={bar.rating} style={{
+                      flex: 1, textAlign: 'center',
+                      fontSize: 9, color: '#567', lineHeight: 1.2,
+                    }}>
+                      {bar.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

@@ -13,6 +13,7 @@ import { ReadingCalendar } from '@/components/ReadingCalendar'
 import { ChallengesCard } from '@/components/ChallengesCard'
 import { GenreChart } from '@/components/GenreChart'
 import { FormatStats } from '@/components/FormatStats'
+import { RatingDistribution } from '@/components/RatingDistribution'
 import { StatsShareCard } from '@/components/StatsShareCard'
 import { RATING_MAP } from '@/lib/constants'
 import type { Metadata } from 'next'
@@ -28,7 +29,7 @@ export default async function StatsPage() {
 
   const oneYearAgo = new Date(Date.now() - 365 * 86400000)
 
-  const [rows, [allTimeCount], streak, calendarRows, genreRows, formatRows] = await Promise.all([
+  const [rows, [allTimeCount], streak, calendarRows, genreRows, formatRows, ratingRows] = await Promise.all([
     db.select().from(userBooks)
       .where(and(
         eq(userBooks.userId, session.user.id!),
@@ -62,6 +63,12 @@ export default async function StatsPage() {
       WHERE user_id = ${session.user.id!} AND status = 'read' AND format IS NOT NULL
       GROUP BY format ORDER BY count DESC
     `),
+    db.execute(sql`
+      SELECT rating, COUNT(*)::int AS count
+      FROM user_books
+      WHERE user_id = ${session.user.id!} AND status = 'read' AND rating IS NOT NULL
+      GROUP BY rating ORDER BY rating
+    `),
   ])
 
   const thisYear = rows.map(r => ({ ...r.user_books, book: r.books }))
@@ -81,6 +88,7 @@ export default async function StatsPage() {
 
   const genreData = genreRows.rows as { genre: string; count: number }[]
   const formatData = formatRows.rows as { format: string; count: number }[]
+  const ratingData = ratingRows.rows as { rating: number; count: number }[]
 
   const calendarData: Record<string, number> = {}
   for (const r of calendarRows) {
@@ -154,6 +162,8 @@ export default async function StatsPage() {
           <ChallengesCard />
 
           <GenreChart data={genreData} />
+
+          <RatingDistribution data={ratingData} />
 
           <FormatStats data={formatData} />
 
