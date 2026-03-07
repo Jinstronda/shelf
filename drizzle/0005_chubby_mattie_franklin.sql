@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "privacy" text DEFAULT 'public';

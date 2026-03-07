@@ -41,6 +41,75 @@ export default async function UserProfilePage({ params }: Props) {
   if (!user) notFound()
 
   const isOwnProfile = session?.user?.id === id
+  const privacy = user.privacy ?? 'public'
+
+  // check follow status for privacy enforcement
+  const isFollowingForPrivacy = session?.user?.id && !isOwnProfile
+    ? (await db.select().from(follows).where(and(eq(follows.followerId, session.user.id), eq(follows.followingId, id))).limit(1)).length > 0
+    : false
+
+  const restricted = !isOwnProfile && (
+    (privacy === 'private') ||
+    (privacy === 'followers' && !isFollowingForPrivacy)
+  )
+
+  if (restricted) {
+    return (
+      <>
+        <SiteNav />
+        <div style={{ paddingTop: 80, minHeight: '100vh' }}>
+          <div className="page-content" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
+            <div className="profile-header" style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 48 }}>
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  border: '3px solid rgba(196,96,58,0.4)',
+                }} />
+              ) : (
+                <div style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: '#C4603A', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontSize: 28, fontWeight: 700, color: '#fff',
+                }}>
+                  {(user.name ?? user.username)[0]?.toUpperCase() ?? '?'}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <h1 style={{
+                  fontFamily: 'Cormorant Garamond, serif', fontSize: 32,
+                  fontWeight: 700, color: '#fff', lineHeight: 1.2,
+                }}>
+                  {user.name ?? user.username}
+                </h1>
+                {user.bio && (
+                  <div style={{ fontSize: 14, color: '#9ab', marginTop: 8, lineHeight: 1.6 }}>
+                    {user.bio}
+                  </div>
+                )}
+              </div>
+              {session?.user && (
+                <FollowButton userId={id} initialFollowing={isFollowingForPrivacy} />
+              )}
+            </div>
+
+            <div style={{
+              textAlign: 'center', padding: '60px 0', color: '#567',
+              background: '#1c2028', borderRadius: 6,
+            }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>🔒</div>
+              <div style={{ fontSize: 15 }}>
+                {privacy === 'private'
+                  ? 'This profile is private'
+                  : 'This profile is only visible to followers'}
+              </div>
+            </div>
+          </div>
+        </div>
+        <SiteFooter />
+      </>
+    )
+  }
 
   const [rows, [followerCount], [followingCount], isFollowingResult, favRows, reviewRows, genreRows, ratingRows] = await Promise.all([
     db

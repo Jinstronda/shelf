@@ -1,5 +1,8 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { db } from '@/lib/db'
+import { users } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { SettingsClient } from '@/components/SettingsClient'
@@ -9,7 +12,9 @@ export const metadata: Metadata = { title: 'Settings — Shelf' }
 
 export default async function SettingsPage() {
   const session = await auth()
-  if (!session?.user) redirect('/api/auth/signin')
+  if (!session?.user?.id) redirect('/api/auth/signin')
+
+  const [user] = await db.select({ privacy: users.privacy }).from(users).where(eq(users.id, session.user.id)).limit(1)
 
   return (
     <>
@@ -46,7 +51,7 @@ export default async function SettingsPage() {
             </a>
           </div>
 
-          <SettingsClient />
+          <SettingsClient initialPrivacy={user?.privacy ?? 'public'} />
         </div>
       </div>
       <SiteFooter />

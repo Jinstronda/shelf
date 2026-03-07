@@ -52,6 +52,7 @@ export const users = pgTable('users', {
   name:      text('name'),
   bio:       text('bio'),
   avatarUrl: text('avatar_url'),
+  privacy:   text('privacy').default('public'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 

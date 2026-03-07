@@ -36,6 +36,13 @@
       "when": 1772921072007,
       "tag": "0004_lowly_nick_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772921595152,
+      "tag": "0005_chubby_mattie_franklin",
+      "breakpoints": true
     }
   ]
 }
