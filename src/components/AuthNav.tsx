@@ -22,21 +22,23 @@ export function AuthNav() {
           </button>
         </li>
         <li style={{ padding: '0 6px' }}>
-          {session.user.image ? (
-            <img src={session.user.image} alt="" style={{
-              width: 28, height: 28, borderRadius: '50%',
-              border: '2px solid rgba(196,96,58,0.5)',
-            }} />
-          ) : (
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: '#C4603A', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: '#fff',
-            }}>
-              {session.user.name?.[0]?.toUpperCase() ?? '?'}
-            </div>
-          )}
+          <a href="/profile" style={{ display: 'block', lineHeight: 0 }}>
+            {session.user.image ? (
+              <img src={session.user.image} alt="" style={{
+                width: 28, height: 28, borderRadius: '50%',
+                border: '2px solid rgba(196,96,58,0.5)',
+              }} />
+            ) : (
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: '#C4603A', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: '#fff',
+              }}>
+                {session.user.name?.[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
+          </a>
         </li>
       </>
     )
