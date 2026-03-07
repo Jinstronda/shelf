@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { books, userBooks } from '@/lib/schema'
 import { eq, desc, count, avg } from 'drizzle-orm'
 import { RATING_MAP, CARD_VARIANTS as CV } from '@/lib/constants'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { CurrentlyReading } from '@/components/CurrentlyReading'
@@ -48,7 +48,7 @@ async function getPopularBooks() {
       .map(r => ({
         googleId: r.googleId!,
         title: r.title,
-        coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+        coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
         avgRating: r.avgRating ? Math.round(parseFloat(r.avgRating)) : null,
       }))
   } catch (err) {
@@ -84,7 +84,7 @@ async function getRecentlyLogged() {
     return deduped.map(r => ({
       googleId: r.googleId!,
       title: r.title,
-      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
       rating: r.rating,
     }))
   } catch (err) {

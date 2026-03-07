@@ -3,7 +3,8 @@ import { db } from '@/lib/db'
 import { userBooks, books } from '@/lib/schema'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
+import { RATING_MAP, pillBase, pillActive, pillInactive } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import type { Metadata } from 'next'
@@ -64,7 +65,7 @@ export default async function TimelinePage({ searchParams }: Props) {
   const entries = rows.map(r => {
     const dateStr = r.readAt ?? (r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null)
     const date = dateStr ? new Date(dateStr) : null
-    const cover = r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl
+    const cover = resolveCoverUrl(r.bookCoverR2Key, r.bookCoverUrl)
     return {
       date,
       year: date ? date.getFullYear() : null,
@@ -79,10 +80,8 @@ export default async function TimelinePage({ searchParams }: Props) {
   type Entry = typeof entries[number]
   type MonthGroup = { label: string; items: Entry[] }
 
-  const sortedEntries = entries
-
   const grouped = new Map<string, MonthGroup>()
-  for (const entry of sortedEntries) {
+  for (const entry of entries) {
     const key = entry.date
       ? `${entry.date.getFullYear()}-${String(entry.date.getMonth()).padStart(2, '0')}`
       : 'unknown'
@@ -101,18 +100,7 @@ export default async function TimelinePage({ searchParams }: Props) {
     key, label: group.label, items: group.items,
   }))
 
-  const pillActive = {
-    background: 'rgba(196,96,58,0.2)', color: '#C4603A',
-    border: '1px solid rgba(196,96,58,0.3)',
-  }
-  const pillInactive = {
-    background: 'rgba(255,255,255,0.05)', color: '#789',
-    border: '1px solid rgba(255,255,255,0.08)',
-  }
-  const pillBase = {
-    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 as const,
-    textDecoration: 'none' as const,
-  }
+  const pill = { ...pillBase, textDecoration: 'none' as const }
 
   return (
     <>
@@ -137,9 +125,9 @@ export default async function TimelinePage({ searchParams }: Props) {
               marginBottom: 40,
             }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Year</span>
-              <a href="/timeline" style={{ ...pillBase, ...(selectedYear === null ? pillActive : pillInactive) }}>All</a>
+              <a href="/timeline" style={{ ...pill, ...(selectedYear === null ? pillActive : pillInactive) }}>All</a>
               {years.map(y => (
-                <a key={y} href={`/timeline?year=${y}`} style={{ ...pillBase, ...(selectedYear === y ? pillActive : pillInactive) }}>{y}</a>
+                <a key={y} href={`/timeline?year=${y}`} style={{ ...pill, ...(selectedYear === y ? pillActive : pillInactive) }}>{y}</a>
               ))}
             </div>
           )}
@@ -207,7 +195,7 @@ export default async function TimelinePage({ searchParams }: Props) {
                       </div>
                       {entry.rating && (
                         <div style={{ fontSize: 11, color: '#C4603A', marginTop: 2 }}>
-                          {renderStars(entry.rating)}
+                          {RATING_MAP[entry.rating] ?? ''}
                         </div>
                       )}
                     </a>
@@ -222,13 +210,4 @@ export default async function TimelinePage({ searchParams }: Props) {
       <SiteFooter />
     </>
   )
-}
-
-function renderStars(rating: number): string {
-  const stars = rating / 2
-  const full = Math.floor(stars)
-  const half = stars % 1 >= 0.5
-  let result = '\u2605'.repeat(full)
-  if (half) result += '\u00BD'
-  return result
 }

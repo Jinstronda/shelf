@@ -1,7 +1,7 @@
 import { db } from './db'
 import { books, userBooks } from './schema'
 import { eq, and, gte, ne, inArray, notInArray, desc, count, sql } from 'drizzle-orm'
-import { coverPublicUrl } from './covers'
+import { resolveCoverUrl } from './covers'
 
 interface RecommendedBook {
   googleId: string
@@ -77,7 +77,7 @@ export async function getRecommendations(userId: string, limit = 12): Promise<Re
         googleId: r.googleId!,
         title: r.title,
         authors: r.authors,
-        coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+        coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
         score: Number(r.score),
       }))
   } catch (err) {

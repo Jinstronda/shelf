@@ -6,8 +6,8 @@ import { redirect } from 'next/navigation'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { BookEntryRow } from '@/components/BookEntryRow'
-import { coverPublicUrl } from '@/lib/covers'
-import { RATINGS, RATING_MAP } from '@/lib/constants'
+import { resolveCoverUrl } from '@/lib/covers'
+import { RATINGS, RATING_MAP, STATUS_LABELS, pillBase, pillActive, pillInactive } from '@/lib/constants'
 import type { Metadata } from 'next'
 
 type Status = 'read' | 'reading' | 'want' | 'dnf'
@@ -26,7 +26,6 @@ const PAGE_SIZE = 40
 const VALID_STATUSES: Status[] = ['read', 'reading', 'want', 'dnf']
 const VALID_SORTS: Sort[] = ['newest', 'oldest', 'rating', 'title', 'author']
 const VALID_VIEWS: View[] = ['grid', 'list']
-const STATUS_LABELS: Record<Status, string> = { read: 'Read', reading: 'Reading', want: 'Want', dnf: 'DNF' }
 const SORT_LABELS: Record<Sort, string> = { newest: 'Newest', oldest: 'Oldest', rating: 'Rating', title: 'Title', author: 'Author' }
 
 function buildFilterHref(base: Record<string, string>, key: string, value: string | null) {
@@ -130,18 +129,7 @@ export default async function LibraryPage({ searchParams }: Props) {
     return `/library?${p.toString()}`
   })()
 
-  const pillActive = {
-    background: 'rgba(196,96,58,0.2)', color: '#C4603A',
-    border: '1px solid rgba(196,96,58,0.3)',
-  }
-  const pillInactive = {
-    background: 'rgba(255,255,255,0.05)', color: '#789',
-    border: '1px solid rgba(255,255,255,0.08)',
-  }
-  const pillBase = {
-    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 as const,
-    textDecoration: 'none' as const,
-  }
+  const pill = { ...pillBase, textDecoration: 'none' as const }
 
   return (
     <>
@@ -194,9 +182,9 @@ export default async function LibraryPage({ searchParams }: Props) {
             {/* status */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Status</span>
-              <a href={buildFilterHref(currentParams, 'status', null)} style={{ ...pillBase, ...(status === null ? pillActive : pillInactive) }}>All</a>
+              <a href={buildFilterHref(currentParams, 'status', null)} style={{ ...pill, ...(status === null ? pillActive : pillInactive) }}>All</a>
               {VALID_STATUSES.map(s => (
-                <a key={s} href={buildFilterHref(currentParams, 'status', s)} style={{ ...pillBase, ...(status === s ? pillActive : pillInactive) }}>{STATUS_LABELS[s]}</a>
+                <a key={s} href={buildFilterHref(currentParams, 'status', s)} style={{ ...pill, ...(status === s ? pillActive : pillInactive) }}>{STATUS_LABELS[s]}</a>
               ))}
             </div>
 
@@ -204,15 +192,15 @@ export default async function LibraryPage({ searchParams }: Props) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Sort</span>
               {VALID_SORTS.map(s => (
-                <a key={s} href={buildFilterHref(currentParams, 'sort', s === 'newest' ? null : s)} style={{ ...pillBase, ...(sort === s ? pillActive : pillInactive) }}>{SORT_LABELS[s]}</a>
+                <a key={s} href={buildFilterHref(currentParams, 'sort', s === 'newest' ? null : s)} style={{ ...pill, ...(sort === s ? pillActive : pillInactive) }}>{SORT_LABELS[s]}</a>
               ))}
             </div>
 
             {/* view toggle */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>View</span>
-              <a href={buildFilterHref(currentParams, 'view', null)} style={{ ...pillBase, ...(view === 'grid' ? pillActive : pillInactive) }}>Grid</a>
-              <a href={buildFilterHref(currentParams, 'view', 'list')} style={{ ...pillBase, ...(view === 'list' ? pillActive : pillInactive) }}>List</a>
+              <a href={buildFilterHref(currentParams, 'view', null)} style={{ ...pill, ...(view === 'grid' ? pillActive : pillInactive) }}>Grid</a>
+              <a href={buildFilterHref(currentParams, 'view', 'list')} style={{ ...pill, ...(view === 'list' ? pillActive : pillInactive) }}>List</a>
             </div>
           </div>
 
@@ -224,9 +212,9 @@ export default async function LibraryPage({ searchParams }: Props) {
             {/* rating */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Rating</span>
-              <a href={buildFilterHref(currentParams, 'rating', null)} style={{ ...pillBase, ...(rating === null ? pillActive : pillInactive) }}>All</a>
+              <a href={buildFilterHref(currentParams, 'rating', null)} style={{ ...pill, ...(rating === null ? pillActive : pillInactive) }}>All</a>
               {RATINGS.map(r => (
-                <a key={r.value} href={buildFilterHref(currentParams, 'rating', String(r.value))} style={{ ...pillBase, ...(rating === r.value ? pillActive : pillInactive) }}>{r.label}</a>
+                <a key={r.value} href={buildFilterHref(currentParams, 'rating', String(r.value))} style={{ ...pill, ...(rating === r.value ? pillActive : pillInactive) }}>{r.label}</a>
               ))}
             </div>
 
@@ -234,9 +222,9 @@ export default async function LibraryPage({ searchParams }: Props) {
             {allGenres.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Genre</span>
-                <a href={buildFilterHref(currentParams, 'genre', null)} style={{ ...pillBase, ...(genre === null ? pillActive : pillInactive) }}>All</a>
+                <a href={buildFilterHref(currentParams, 'genre', null)} style={{ ...pill, ...(genre === null ? pillActive : pillInactive) }}>All</a>
                 {allGenres.map(g => (
-                  <a key={g} href={buildFilterHref(currentParams, 'genre', g)} style={{ ...pillBase, ...(genre === g ? pillActive : pillInactive) }}>{g}</a>
+                  <a key={g} href={buildFilterHref(currentParams, 'genre', g)} style={{ ...pill, ...(genre === g ? pillActive : pillInactive) }}>{g}</a>
                 ))}
               </div>
             )}
@@ -250,96 +238,69 @@ export default async function LibraryPage({ searchParams }: Props) {
               </a>
             </div>
           ) : view === 'grid' ? (
-            <>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                gap: 12,
-              }}>
-                {entries.map(entry => {
-                  const cover = entry.book.coverR2Key
-                    ? coverPublicUrl(entry.book.coverR2Key)
-                    : entry.book.coverUrl
-                  return (
-                    <a key={entry.id} href={`/book/${entry.book.googleId}`}
-                      style={{ textDecoration: 'none' }}>
-                      <div style={{
-                        aspectRatio: '2/3', borderRadius: 3, overflow: 'hidden',
-                        background: '#1c2028',
-                      }}>
-                        {cover && (
-                          <img
-                            src={cover}
-                            alt={entry.book.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        )}
-                      </div>
-                      <div style={{
-                        fontSize: 11, color: '#ccc', fontWeight: 600, lineHeight: 1.3,
-                        marginTop: 5, overflow: 'hidden',
-                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                      }}>
-                        {entry.book.title}
-                      </div>
-                      {entry.rating && (
-                        <div style={{ fontSize: 11, color: '#C4603A', marginTop: 2 }}>
-                          {RATING_MAP[entry.rating] ?? ''}
-                        </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gap: 12,
+            }}>
+              {entries.map(entry => {
+                const cover = resolveCoverUrl(entry.book.coverR2Key, entry.book.coverUrl)
+                return (
+                  <a key={entry.id} href={`/book/${entry.book.googleId}`}
+                    style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      aspectRatio: '2/3', borderRadius: 3, overflow: 'hidden',
+                      background: '#1c2028',
+                    }}>
+                      {cover && (
+                        <img
+                          src={cover}
+                          alt={entry.book.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                       )}
-                    </a>
-                  )
-                })}
-              </div>
-              {hasMore && (
-                <div style={{ textAlign: 'center', marginTop: 32 }}>
-                  <a
-                    href={loadMoreHref}
-                    style={{
-                      display: 'block',
-                      background: 'rgba(255,255,255,0.05)',
-                      color: '#9ab',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 4,
-                      padding: '10px 24px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Load More
+                    </div>
+                    <div style={{
+                      fontSize: 11, color: '#ccc', fontWeight: 600, lineHeight: 1.3,
+                      marginTop: 5, overflow: 'hidden',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}>
+                      {entry.book.title}
+                    </div>
+                    {entry.rating && (
+                      <div style={{ fontSize: 11, color: '#C4603A', marginTop: 2 }}>
+                        {RATING_MAP[entry.rating] ?? ''}
+                      </div>
+                    )}
                   </a>
-                </div>
-              )}
-            </>
+                )
+              })}
+            </div>
           ) : (
-            <>
-              {entries.map(entry => (
-                <BookEntryRow key={entry.id} entry={entry} />
-              ))}
-              {hasMore && (
-                <div style={{ textAlign: 'center', marginTop: 32 }}>
-                  <a
-                    href={loadMoreHref}
-                    style={{
-                      display: 'block',
-                      background: 'rgba(255,255,255,0.05)',
-                      color: '#9ab',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 4,
-                      padding: '10px 24px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Load More
-                  </a>
-                </div>
-              )}
-            </>
+            entries.map(entry => (
+              <BookEntryRow key={entry.id} entry={entry} />
+            ))
+          )}
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 32 }}>
+              <a
+                href={loadMoreHref}
+                style={{
+                  display: 'block',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#9ab',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 4,
+                  padding: '10px 24px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                }}
+              >
+                Load More
+              </a>
+            </div>
           )}
         </div>
       </div>

@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { bookQuotes, books } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import type { Metadata } from 'next'
@@ -35,7 +35,7 @@ export default async function QuotesPage() {
   const grouped = new Map<string, { title: string; googleId: string | null; coverUrl: string | null; quotes: typeof rows }>()
   for (const row of rows) {
     const existing = grouped.get(row.bookId)
-    const cover = row.bookCoverR2Key ? coverPublicUrl(row.bookCoverR2Key) : row.bookCoverUrl
+    const cover = resolveCoverUrl(row.bookCoverR2Key, row.bookCoverUrl)
     if (existing) {
       existing.quotes.push(row)
     } else {

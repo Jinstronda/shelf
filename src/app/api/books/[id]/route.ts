@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { books } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 
 export async function GET(
   _req: NextRequest,
@@ -14,6 +14,6 @@ export async function GET(
 
   return NextResponse.json({
     ...book,
-    coverUrl: book.coverR2Key ? coverPublicUrl(book.coverR2Key) : book.coverUrl,
+    coverUrl: resolveCoverUrl(book.coverR2Key, book.coverUrl),
   })
 }

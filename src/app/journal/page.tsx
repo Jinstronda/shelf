@@ -7,6 +7,7 @@ import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { BookEntryRow } from '@/components/BookEntryRow'
 import { DiaryCalendar } from '@/components/DiaryCalendar'
+import { STATUS_LABELS, pillBase, pillActive, pillInactive } from '@/lib/constants'
 import type { Metadata } from 'next'
 
 type Status = 'read' | 'reading' | 'want' | 'dnf'
@@ -20,7 +21,6 @@ const PAGE_SIZE = 30
 
 const VALID_STATUSES: Status[] = ['read', 'reading', 'want', 'dnf']
 const VALID_SORTS: Sort[] = ['newest', 'oldest', 'rating']
-const STATUS_LABELS: Record<Status, string> = { read: 'Read', reading: 'Reading', want: 'Want', dnf: 'DNF' }
 const SORT_LABELS: Record<Sort, string> = { newest: 'Newest', oldest: 'Oldest', rating: 'Rating' }
 
 function buildFilterHref(base: Record<string, string>, key: string, value: string | null) {
@@ -139,18 +139,7 @@ export default async function JournalPage({ searchParams }: Props) {
     return `/journal?${p.toString()}`
   })()
 
-  const pillActive = {
-    background: 'rgba(196,96,58,0.2)', color: '#C4603A',
-    border: '1px solid rgba(196,96,58,0.3)',
-  }
-  const pillInactive = {
-    background: 'rgba(255,255,255,0.05)', color: '#789',
-    border: '1px solid rgba(255,255,255,0.08)',
-  }
-  const pillBase = {
-    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 as const,
-    textDecoration: 'none' as const,
-  }
+  const pill = { ...pillBase, textDecoration: 'none' as const }
 
   return (
     <>
@@ -174,24 +163,24 @@ export default async function JournalPage({ searchParams }: Props) {
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Year</span>
-              <a href={buildFilterHref(currentParams, 'year', null)} style={{ ...pillBase, ...(year === null ? pillActive : pillInactive) }}>All</a>
+              <a href={buildFilterHref(currentParams, 'year', null)} style={{ ...pill, ...(year === null ? pillActive : pillInactive) }}>All</a>
               {yearOptions.map(y => (
-                <a key={y} href={buildFilterHref(currentParams, 'year', String(y))} style={{ ...pillBase, ...(year === y ? pillActive : pillInactive) }}>{y}</a>
+                <a key={y} href={buildFilterHref(currentParams, 'year', String(y))} style={{ ...pill, ...(year === y ? pillActive : pillInactive) }}>{y}</a>
               ))}
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Status</span>
-              <a href={buildFilterHref(currentParams, 'status', null)} style={{ ...pillBase, ...(status === null ? pillActive : pillInactive) }}>All</a>
+              <a href={buildFilterHref(currentParams, 'status', null)} style={{ ...pill, ...(status === null ? pillActive : pillInactive) }}>All</a>
               {VALID_STATUSES.map(s => (
-                <a key={s} href={buildFilterHref(currentParams, 'status', s)} style={{ ...pillBase, ...(status === s ? pillActive : pillInactive) }}>{STATUS_LABELS[s]}</a>
+                <a key={s} href={buildFilterHref(currentParams, 'status', s)} style={{ ...pill, ...(status === s ? pillActive : pillInactive) }}>{STATUS_LABELS[s]}</a>
               ))}
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#567', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4 }}>Sort</span>
               {VALID_SORTS.map(s => (
-                <a key={s} href={buildFilterHref(currentParams, 'sort', s === 'newest' ? null : s)} style={{ ...pillBase, ...(sort === s ? pillActive : pillInactive) }}>{SORT_LABELS[s]}</a>
+                <a key={s} href={buildFilterHref(currentParams, 'sort', s === 'newest' ? null : s)} style={{ ...pill, ...(sort === s ? pillActive : pillInactive) }}>{SORT_LABELS[s]}</a>
               ))}
             </div>
           </div>

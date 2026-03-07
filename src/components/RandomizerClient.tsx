@@ -28,19 +28,11 @@ function matchesPageFilter(book: Book, filter: PageFilter): boolean {
   return book.pageCount > 400
 }
 
-const pillBase = {
-  padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 as const,
-  border: 'none', cursor: 'pointer' as const, transition: 'all 0.15s',
-}
+import { pillBase as _pillBase, pillActive, pillInactive } from '@/lib/constants'
 
-const pillActive = {
-  background: 'rgba(196,96,58,0.2)', color: '#C4603A',
-  border: '1px solid rgba(196,96,58,0.3)',
-}
-
-const pillInactive = {
-  background: 'rgba(255,255,255,0.05)', color: '#789',
-  border: '1px solid rgba(255,255,255,0.08)',
+const pillBtn = {
+  ..._pillBase, border: 'none', cursor: 'pointer' as const,
+  transition: 'all 0.15s', fontFamily: 'inherit',
 }
 
 export function RandomizerClient({ books }: { books: Book[] }) {
@@ -139,7 +131,7 @@ export function RandomizerClient({ books }: { books: Book[] }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <button
               onClick={() => { setSelectedGenres(new Set()); setChosenBook(null) }}
-              style={{ ...pillBase, ...(selectedGenres.size === 0 ? pillActive : pillInactive) }}
+              style={{ ...pillBtn, ...(selectedGenres.size === 0 ? pillActive : pillInactive) }}
             >
               All
             </button>
@@ -147,7 +139,7 @@ export function RandomizerClient({ books }: { books: Book[] }) {
               <button
                 key={g}
                 onClick={() => toggleGenre(g)}
-                style={{ ...pillBase, ...(selectedGenres.has(g) ? pillActive : pillInactive) }}
+                style={{ ...pillBtn, ...(selectedGenres.has(g) ? pillActive : pillInactive) }}
               >
                 {g}
               </button>
@@ -169,7 +161,7 @@ export function RandomizerClient({ books }: { books: Book[] }) {
             <button
               key={f.key}
               onClick={() => { setPageFilter(f.key); setChosenBook(null) }}
-              style={{ ...pillBase, ...(pageFilter === f.key ? pillActive : pillInactive) }}
+              style={{ ...pillBtn, ...(pageFilter === f.key ? pillActive : pillInactive) }}
             >
               {f.label}
             </button>

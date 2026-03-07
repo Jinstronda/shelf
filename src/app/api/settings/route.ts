@@ -32,21 +32,23 @@ export async function DELETE() {
 
   const userId = session.user.id
 
-  await db.delete(reviewLikes).where(eq(reviewLikes.userId, userId))
-  await db.delete(reviewComments).where(eq(reviewComments.userId, userId))
-  await db.delete(bookQuotes).where(eq(bookQuotes.userId, userId))
-  await db.delete(bookTags).where(eq(bookTags.userId, userId))
-  await db.delete(reReads).where(eq(reReads.userId, userId))
-  await db.delete(notifications).where(eq(notifications.userId, userId))
-  await db.delete(challenges).where(eq(challenges.userId, userId))
-  await db.delete(shelves).where(eq(shelves.userId, userId))
-  await db.delete(favoriteBooks).where(eq(favoriteBooks.userId, userId))
-  await db.delete(userBooks).where(eq(userBooks.userId, userId))
-  await db.delete(follows).where(
-    or(eq(follows.followerId, userId), eq(follows.followingId, userId))
-  )
-  await db.delete(readingGoals).where(eq(readingGoals.userId, userId))
-  await db.delete(lists).where(eq(lists.userId, userId))
+  await Promise.all([
+    db.delete(reviewLikes).where(eq(reviewLikes.userId, userId)),
+    db.delete(reviewComments).where(eq(reviewComments.userId, userId)),
+    db.delete(bookQuotes).where(eq(bookQuotes.userId, userId)),
+    db.delete(bookTags).where(eq(bookTags.userId, userId)),
+    db.delete(reReads).where(eq(reReads.userId, userId)),
+    db.delete(notifications).where(eq(notifications.userId, userId)),
+    db.delete(challenges).where(eq(challenges.userId, userId)),
+  ])
+  await Promise.all([
+    db.delete(shelves).where(eq(shelves.userId, userId)),
+    db.delete(favoriteBooks).where(eq(favoriteBooks.userId, userId)),
+    db.delete(userBooks).where(eq(userBooks.userId, userId)),
+    db.delete(follows).where(or(eq(follows.followerId, userId), eq(follows.followingId, userId))),
+    db.delete(readingGoals).where(eq(readingGoals.userId, userId)),
+    db.delete(lists).where(eq(lists.userId, userId)),
+  ])
   await db.delete(users).where(eq(users.id, userId))
 
   return NextResponse.json({ ok: true })

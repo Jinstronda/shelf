@@ -8,7 +8,7 @@ import { alias } from 'drizzle-orm/pg-core'
 import { notFound } from 'next/navigation'
 import { BookDetailClient } from '@/components/BookDetailClient'
 import { auth } from '@/lib/auth'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -191,7 +191,7 @@ async function getAuthorBooks(authorName: string, excludeDbId: string) {
     return rows.map(r => ({
       googleId: r.googleId!,
       title: r.title,
-      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
     }))
   } catch (err) {
     console.error('getAuthorBooks:', err)

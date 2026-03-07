@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { userBooks, books } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { RandomizerClient } from '@/components/RandomizerClient'
@@ -38,7 +38,7 @@ export default async function RandomizerPage() {
       googleId: r.googleId!,
       title: r.title,
       authors: r.authors,
-      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
       pageCount: r.pageCount,
       genres: r.genres ?? [],
     }))

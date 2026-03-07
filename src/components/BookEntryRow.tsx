@@ -1,5 +1,5 @@
 import { RATING_MAP } from '@/lib/constants'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import type { UserBook, Book } from '@/lib/schema'
 
 interface Props {
@@ -17,7 +17,7 @@ export function BookEntryRow({ entry }: Props) {
         flexShrink: 0, background: '#1c2028',
       }}>
         {(entry.book.coverR2Key || entry.book.coverUrl) && (
-          <img src={entry.book.coverR2Key ? coverPublicUrl(entry.book.coverR2Key) : entry.book.coverUrl!} alt={entry.book.title}
+          <img src={resolveCoverUrl(entry.book.coverR2Key, entry.book.coverUrl)!} alt={entry.book.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         )}
       </div>

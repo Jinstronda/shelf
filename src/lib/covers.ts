@@ -58,3 +58,8 @@ export async function cacheCoverToR2(sourceUrl: string, bookId: string): Promise
 export function coverPublicUrl(r2Key: string): string {
   return `${process.env.R2_PUBLIC_URL}/${r2Key}`
 }
+
+/** Resolve cover URL: prefer R2 cached version, fall back to original */
+export function resolveCoverUrl(r2Key: string | null, fallbackUrl: string | null): string | null {
+  return r2Key ? coverPublicUrl(r2Key) : fallbackUrl
+}

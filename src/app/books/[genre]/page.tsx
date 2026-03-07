@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { books, userBooks } from '@/lib/schema'
 import { eq, desc, count, sql } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { WantToReadButton } from '@/components/WantToReadButton'
@@ -87,7 +87,7 @@ export default async function GenrePage({ params }: Props) {
                     <div className={`card ${CV[i % 12]}`}>
                       {(book.coverR2Key || book.coverUrl) && (
                         <img
-                          src={book.coverR2Key ? coverPublicUrl(book.coverR2Key) : book.coverUrl!}
+                          src={resolveCoverUrl(book.coverR2Key, book.coverUrl)!}
                           alt={book.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />

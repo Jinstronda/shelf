@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { userBooks, users, books, reviewLikes } from '@/lib/schema'
 import { eq, desc, isNotNull, sql } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { RATING_MAP } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -67,7 +67,7 @@ export default async function ReviewsPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {rows.map((r, i) => {
-                const cover = r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl
+                const cover = resolveCoverUrl(r.bookCoverR2Key, r.bookCoverUrl)
                 const truncated = r.review && r.review.length > 200
                   ? r.review.slice(0, 200).trimEnd() + '...'
                   : r.review

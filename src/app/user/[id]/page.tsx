@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { users, userBooks, books, follows } from '@/lib/schema'
 import { eq, and, desc, count, isNotNull, sql } from 'drizzle-orm'
 import { getFavorites } from '@/lib/queries'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { notFound } from 'next/navigation'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -159,7 +159,7 @@ export default async function UserProfilePage({ params }: Props) {
     ...r.user_books,
     book: {
       ...r.books,
-      coverUrl: r.books.coverR2Key ? coverPublicUrl(r.books.coverR2Key) : r.books.coverUrl,
+      coverUrl: resolveCoverUrl(r.books.coverR2Key, r.books.coverUrl),
     },
   }))
   const read = logged.filter(l => l.status === 'read')
@@ -350,7 +350,7 @@ export default async function UserProfilePage({ params }: Props) {
                 }}>
                   <a href={`/book/${r.bookGoogleId}`} style={{ flexShrink: 0 }}>
                     {(r.bookCoverR2Key || r.bookCoverUrl) ? (
-                      <img src={r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl!} alt="" style={{
+                      <img src={resolveCoverUrl(r.bookCoverR2Key, r.bookCoverUrl)!} alt="" style={{
                         width: 40, height: 60, borderRadius: 3, objectFit: 'cover',
                       }} />
                     ) : (

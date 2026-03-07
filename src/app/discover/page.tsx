@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { books, userBooks, users } from '@/lib/schema'
 import { eq, desc, count, avg, gte, sql, isNotNull } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { RATING_MAP, CARD_VARIANTS as CV } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -33,7 +33,7 @@ function toDiscoverBooks(rows: BookRow[]): DiscoverBook[] {
       googleId: r.googleId!,
       title: r.title,
       authors: r.authors,
-      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
     }))
 }
 
@@ -131,7 +131,7 @@ async function getPopularThisWeek(): Promise<PopularBook[]> {
         googleId: r.googleId!,
         title: r.title,
         authors: r.authors,
-        coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+        coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
         activityCount: Number(r.activityCount),
         avgRating: r.avgRating ? Number(r.avgRating) : null,
         reviewCount: Number(r.reviewCount),
@@ -191,7 +191,7 @@ async function getPopularReviews(): Promise<PopularReview[]> {
         id: r.id,
         bookTitle: r.bookTitle,
         bookGoogleId: r.bookGoogleId!,
-        bookCover: r.bookR2Key ? coverPublicUrl(r.bookR2Key) : r.bookCover,
+        bookCover: resolveCoverUrl(r.bookR2Key, r.bookCover),
         userName: r.userName ?? 'Anonymous',
         userAvatar: r.userAvatar,
         rating: r.rating,

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userBooks, books, users, follows } from '@/lib/schema'
-import { eq, desc, inArray, ne, and, sql } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { eq, desc, inArray, ne, and } from 'drizzle-orm'
+import { resolveCoverUrl } from '@/lib/covers'
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams
@@ -28,12 +28,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // exclude private users from the "everyone" feed
-  const privateUserIds = tab === 'everyone'
-    ? (await db.select({ id: users.id }).from(users).where(eq(users.privacy, 'private'))).map(r => r.id)
-    : []
+  const conditions = filterUserIds
+    ? [inArray(userBooks.userId, filterUserIds)]
+    : [ne(users.privacy, 'private')]
 
-  const query = db
+  const rows = await db
     .select({
       id: userBooks.id,
       status: userBooks.status,
@@ -52,20 +51,11 @@ export async function GET(req: NextRequest) {
     })
     .from(userBooks)
     .innerJoin(books, eq(userBooks.bookId, books.id))
-    .leftJoin(users, eq(userBooks.userId, users.id))
+    .innerJoin(users, eq(userBooks.userId, users.id))
+    .where(and(...conditions))
     .orderBy(desc(userBooks.updatedAt))
     .limit(limit + 1)
     .offset(offset)
-
-  const conditions = filterUserIds
-    ? [inArray(userBooks.userId, filterUserIds)]
-    : privateUserIds.length > 0
-      ? [sql`${userBooks.userId} != ALL(${privateUserIds})`]
-      : []
-
-  const rows = conditions.length > 0
-    ? await query.where(and(...conditions))
-    : await query
 
   const hasMore = rows.length > limit
   const entries = rows.slice(0, limit).map(r => ({
@@ -82,7 +72,7 @@ export async function GET(req: NextRequest) {
       googleId: r.bookGoogleId,
       title: r.bookTitle,
       authors: r.bookAuthors,
-      coverUrl: r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl,
+      coverUrl: resolveCoverUrl(r.bookCoverR2Key, r.bookCoverUrl),
     },
   }))
 

@@ -5,7 +5,7 @@ import { books } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getGoogleBook } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
-import { cacheCoverToR2, coverPublicUrl } from '@/lib/covers'
+import { cacheCoverToR2, resolveCoverUrl } from '@/lib/covers'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const b = existing[0]
     return NextResponse.json({
       ...b,
-      coverUrl: b.coverR2Key ? coverPublicUrl(b.coverR2Key) : b.coverUrl,
+      coverUrl: resolveCoverUrl(b.coverR2Key, b.coverUrl),
     })
   }
 

@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { books, userBooks } from '@/lib/schema'
 import { eq, sql, desc } from 'drizzle-orm'
-import { coverPublicUrl } from '@/lib/covers'
+import { resolveCoverUrl } from '@/lib/covers'
 import { RATING_MAP } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -49,7 +49,7 @@ async function getBooksByAuthor(authorName: string): Promise<AuthorBookRow[]> {
     return rows.map(r => ({
       googleId: r.googleId,
       title: r.title,
-      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      coverUrl: resolveCoverUrl(r.coverR2Key, r.coverUrl),
       coverR2Key: r.coverR2Key,
       published: r.published,
       avgRating: r.avgRating ? parseFloat(Number(r.avgRating).toFixed(1)) : null,
