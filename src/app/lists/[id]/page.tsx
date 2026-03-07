@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { lists, listItems, books } from '@/lib/schema'
@@ -12,16 +13,21 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+const getList = cache(async (id: string) => {
+  const [list] = await db.select().from(lists).where(eq(lists.id, id)).limit(1)
+  return list ?? null
+})
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const [list] = await db.select().from(lists).where(eq(lists.id, id)).limit(1)
+  const list = await getList(id)
   if (!list) return { title: 'List not found — Shelf' }
   return { title: `${list.name} — Shelf` }
 }
 
 export default async function ListDetailPage({ params }: Props) {
   const { id } = await params
-  const [list] = await db.select().from(lists).where(eq(lists.id, id)).limit(1)
+  const list = await getList(id)
   if (!list) notFound()
 
   const session = await auth()

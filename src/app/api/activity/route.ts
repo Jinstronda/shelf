@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userBooks, books, users, follows } from '@/lib/schema'
-import { eq, desc, inArray } from 'drizzle-orm'
+import { eq, desc, inArray, ne, and, sql } from 'drizzle-orm'
+import { coverPublicUrl } from '@/lib/covers'
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams
@@ -27,6 +28,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // exclude private users from the "everyone" feed
+  const privateUserIds = tab === 'everyone'
+    ? (await db.select({ id: users.id }).from(users).where(eq(users.privacy, 'private'))).map(r => r.id)
+    : []
+
   const query = db
     .select({
       id: userBooks.id,
@@ -42,6 +48,7 @@ export async function GET(req: NextRequest) {
       bookTitle: books.title,
       bookAuthors: books.authors,
       bookCoverUrl: books.coverUrl,
+      bookCoverR2Key: books.coverR2Key,
     })
     .from(userBooks)
     .innerJoin(books, eq(userBooks.bookId, books.id))
@@ -50,8 +57,14 @@ export async function GET(req: NextRequest) {
     .limit(limit + 1)
     .offset(offset)
 
-  const rows = filterUserIds
-    ? await query.where(inArray(userBooks.userId, filterUserIds))
+  const conditions = filterUserIds
+    ? [inArray(userBooks.userId, filterUserIds)]
+    : privateUserIds.length > 0
+      ? [sql`${userBooks.userId} != ALL(${privateUserIds})`]
+      : []
+
+  const rows = conditions.length > 0
+    ? await query.where(and(...conditions))
     : await query
 
   const hasMore = rows.length > limit
@@ -69,7 +82,7 @@ export async function GET(req: NextRequest) {
       googleId: r.bookGoogleId,
       title: r.bookTitle,
       authors: r.bookAuthors,
-      coverUrl: r.bookCoverUrl,
+      coverUrl: r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl,
     },
   }))
 

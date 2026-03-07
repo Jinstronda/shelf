@@ -18,11 +18,13 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
   const [format, setFormat] = useState('')
   const [review, setReview] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (saving) return
     setSaving(true)
+    setError(null)
     try {
       const res = await fetch('/api/re-reads', {
         method: 'POST',
@@ -35,7 +37,7 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
           review: review.trim() || null,
         }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) throw new Error('Failed to save')
       const created: ReRead = await res.json()
       setReReads(prev => [created, ...prev])
       setReadAt('')
@@ -44,6 +46,7 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
       setReview('')
       setShowForm(false)
     } catch {
+      setError('Failed to save re-read')
     } finally {
       setSaving(false)
     }
@@ -57,9 +60,10 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) throw new Error('Failed to delete')
       setReReads(prev => prev.filter(r => r.id !== id))
     } catch {
+      setError('Failed to delete re-read')
     }
   }
 
@@ -86,6 +90,10 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
           {showForm ? 'Cancel' : 'Log Re-read'}
         </button>
       </div>
+
+      {error && (
+        <div style={{ fontSize: 12, color: '#e05c7a', marginBottom: 10 }}>{error}</div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} style={{

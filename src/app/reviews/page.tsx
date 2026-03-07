@@ -105,7 +105,7 @@ export default async function ReviewsPage() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 11, color: '#567',
                               }}>
-                                {r.userName[0]}
+                                {(r.userName ?? '?')[0]}
                               </div>
                             )}
                             <span style={{ fontSize: 13, fontWeight: 600, color: '#ccc' }}>{r.userName}</span>

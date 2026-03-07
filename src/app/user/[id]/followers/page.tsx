@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { users, follows, userBooks } from '@/lib/schema'
@@ -12,9 +13,14 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+const getUser = cache(async (id: string) => {
+  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1)
+  return user ?? null
+})
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1)
+  const user = await getUser(id)
   if (!user) return { title: 'User not found — Shelf' }
   return { title: `${user.name ?? user.username}'s Followers — Shelf` }
 }
@@ -22,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function FollowersPage({ params }: Props) {
   const { id } = await params
   const [user, session] = await Promise.all([
-    db.select().from(users).where(eq(users.id, id)).limit(1).then(r => r[0] ?? null),
+    getUser(id),
     auth(),
   ])
   if (!user) notFound()

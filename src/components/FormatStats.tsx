@@ -15,7 +15,7 @@ interface Props {
 export function FormatStats({ data }: Props) {
   if (data.length === 0) return null
 
-  const maxCount = data[0].count
+  const maxCount = Math.max(...data.map(d => d.count), 1)
 
   return (
     <div style={{ marginBottom: 40 }}>

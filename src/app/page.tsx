@@ -106,7 +106,6 @@ export default async function HomePage() {
       <section className="hero">
         <div className="hero-photo" />
         <div className="hero-grad" />
-        <div className="hero-credit">The Library at Night — Alberto Manguel</div>
         <div className="hero-body">
           <h1 className="hero-headline">
             Log the books you&apos;ve read.<br />

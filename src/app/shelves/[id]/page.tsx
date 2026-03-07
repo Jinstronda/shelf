@@ -1,7 +1,8 @@
+import { cache } from 'react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { shelves, shelfItems, books, userBooks } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -13,16 +14,21 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+const getShelf = cache(async (id: string) => {
+  const [shelf] = await db.select().from(shelves).where(eq(shelves.id, id)).limit(1)
+  return shelf ?? null
+})
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const [shelf] = await db.select().from(shelves).where(eq(shelves.id, id)).limit(1)
+  const shelf = await getShelf(id)
   if (!shelf) return { title: 'Shelf not found — Shelf' }
   return { title: `${shelf.name} — Shelf` }
 }
 
 export default async function ShelfDetailPage({ params }: Props) {
   const { id } = await params
-  const [shelf] = await db.select().from(shelves).where(eq(shelves.id, id)).limit(1)
+  const shelf = await getShelf(id)
   if (!shelf) notFound()
 
   const session = await auth()
@@ -37,28 +43,26 @@ export default async function ShelfDetailPage({ params }: Props) {
     .where(eq(shelfItems.shelfId, id))
     .orderBy(shelfItems.createdAt)
 
-  const items = await Promise.all(
-    rawItems.map(async ({ shelf_items: item, books: book }) => {
-      let ratingLabel: string | null = null
-      if (session?.user?.id) {
-        const [ub] = await db
-          .select({ rating: userBooks.rating })
-          .from(userBooks)
-          .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, book.id)))
-          .limit(1)
-        if (ub?.rating) ratingLabel = RATING_MAP[ub.rating] ?? null
-      }
-      return {
-        id: item.id,
-        bookId: item.bookId,
-        googleId: book.googleId,
-        title: book.title,
-        authors: book.authors,
-        coverUrl: book.coverUrl,
-        ratingLabel,
-      }
-    })
-  )
+  const bookIds = rawItems.map(r => r.books.id)
+  const ratingRows = session?.user?.id && bookIds.length > 0
+    ? await db
+        .select({ bookId: userBooks.bookId, rating: userBooks.rating })
+        .from(userBooks)
+        .where(and(eq(userBooks.userId, session.user.id!), inArray(userBooks.bookId, bookIds)))
+    : []
+  const ratingMap = new Map(ratingRows.map(r => [r.bookId, r.rating]))
+
+  const items = rawItems.map(({ shelf_items: item, books: book }) => ({
+    id: item.id,
+    bookId: item.bookId,
+    googleId: book.googleId,
+    title: book.title,
+    authors: book.authors,
+    coverUrl: book.coverUrl,
+    ratingLabel: ratingMap.has(book.id) && ratingMap.get(book.id)
+      ? RATING_MAP[ratingMap.get(book.id)!] ?? null
+      : null,
+  }))
 
   return (
     <>

@@ -19,7 +19,7 @@ export function GenreChart({ data }: { data: { genre: string; count: number }[] 
     )
   }
 
-  const max = data[0].count
+  const max = Math.max(...data.map(d => d.count), 1)
   const barHeight = 28
   const gap = 4
   const leftPad = 140

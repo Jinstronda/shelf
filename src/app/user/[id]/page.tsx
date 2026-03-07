@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { users, userBooks, books, follows } from '@/lib/schema'
 import { eq, and, desc, count, isNotNull, sql } from 'drizzle-orm'
 import { getFavorites } from '@/lib/queries'
+import { coverPublicUrl } from '@/lib/covers'
 import { notFound } from 'next/navigation'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -17,6 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
   read: 'finished reading',
   reading: 'started reading',
   want: 'wants to read',
+  dnf: 'did not finish',
 }
 
 interface Props {
@@ -111,7 +113,7 @@ export default async function UserProfilePage({ params }: Props) {
     )
   }
 
-  const [rows, [followerCount], [followingCount], isFollowingResult, favRows, reviewRows, genreRows, ratingRows] = await Promise.all([
+  const [rows, [followerCount], [followingCount], favRows, reviewRows, genreRows, ratingRows] = await Promise.all([
     db
       .select()
       .from(userBooks)
@@ -120,13 +122,6 @@ export default async function UserProfilePage({ params }: Props) {
       .orderBy(desc(userBooks.updatedAt)),
     db.select({ total: count() }).from(follows).where(eq(follows.followingId, id)),
     db.select({ total: count() }).from(follows).where(eq(follows.followerId, id)),
-    session?.user?.id && !isOwnProfile
-      ? db
-          .select()
-          .from(follows)
-          .where(and(eq(follows.followerId, session.user.id), eq(follows.followingId, id)))
-          .limit(1)
-      : Promise.resolve([]),
     getFavorites(id),
     db
       .select({
@@ -137,6 +132,7 @@ export default async function UserProfilePage({ params }: Props) {
         bookTitle: books.title,
         bookGoogleId: books.googleId,
         bookCoverUrl: books.coverUrl,
+        bookCoverR2Key: books.coverR2Key,
         likeCount: sql<number>`(select count(*) from review_likes where review_likes.review_id = ${userBooks.id})`,
       })
       .from(userBooks)
@@ -159,11 +155,17 @@ export default async function UserProfilePage({ params }: Props) {
     `),
   ])
 
-  const logged = rows.map(r => ({ ...r.user_books, book: r.books }))
+  const logged = rows.map(r => ({
+    ...r.user_books,
+    book: {
+      ...r.books,
+      coverUrl: r.books.coverR2Key ? coverPublicUrl(r.books.coverR2Key) : r.books.coverUrl,
+    },
+  }))
   const read = logged.filter(l => l.status === 'read')
   const reading = logged.filter(l => l.status === 'reading')
   const want = logged.filter(l => l.status === 'want')
-  const isFollowing = isFollowingResult.length > 0
+  const isFollowing = isFollowingForPrivacy
 
   const yearStart = new Date(new Date().getFullYear(), 0, 1)
   const readThisYear = read.filter(r => r.updatedAt && new Date(r.updatedAt) >= yearStart)
@@ -347,8 +349,8 @@ export default async function UserProfilePage({ params }: Props) {
                     ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
                   <a href={`/book/${r.bookGoogleId}`} style={{ flexShrink: 0 }}>
-                    {r.bookCoverUrl ? (
-                      <img src={r.bookCoverUrl} alt="" style={{
+                    {(r.bookCoverR2Key || r.bookCoverUrl) ? (
+                      <img src={r.bookCoverR2Key ? coverPublicUrl(r.bookCoverR2Key) : r.bookCoverUrl!} alt="" style={{
                         width: 40, height: 60, borderRadius: 3, objectFit: 'cover',
                       }} />
                     ) : (

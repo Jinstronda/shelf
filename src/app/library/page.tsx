@@ -93,35 +93,36 @@ export default async function LibraryPage({ searchParams }: Props) {
   } as const
   const orderBy = SORT_COLUMNS[sort]
 
-  const rows = await db
-    .select()
-    .from(userBooks)
-    .innerJoin(books, eq(userBooks.bookId, books.id))
-    .where(and(...conditions))
-    .orderBy(orderBy)
-    .limit(PAGE_SIZE + 1)
-    .offset((page - 1) * PAGE_SIZE)
+  const userId = session.user.id!
+
+  const [rows, countRows, genreResult] = await Promise.all([
+    db
+      .select()
+      .from(userBooks)
+      .innerJoin(books, eq(userBooks.bookId, books.id))
+      .where(and(...conditions))
+      .orderBy(orderBy)
+      .limit(PAGE_SIZE + 1)
+      .offset((page - 1) * PAGE_SIZE),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(userBooks)
+      .where(eq(userBooks.userId, userId)),
+    db.execute(sql`
+      SELECT DISTINCT unnest(b.genres) AS genre
+      FROM user_books ub JOIN books b ON b.id = ub.book_id
+      WHERE ub.user_id = ${userId}
+      ORDER BY genre
+    `),
+  ])
 
   const hasMore = rows.length > PAGE_SIZE
   const entries = rows.slice(0, PAGE_SIZE).map(r => ({
     ...r.user_books,
     book: r.books,
   }))
-
-  // count total books for subtitle
-  const countRows = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(userBooks)
-    .where(eq(userBooks.userId, session.user.id!))
   const totalBooks = Number(countRows[0]?.count ?? 0)
-
-  // genres from user's books for filter dropdown
-  const genreRows = await db
-    .select({ genres: books.genres })
-    .from(userBooks)
-    .innerJoin(books, eq(userBooks.bookId, books.id))
-    .where(eq(userBooks.userId, session.user.id!))
-  const allGenres = [...new Set(genreRows.flatMap(r => r.genres ?? []))].sort()
+  const allGenres = (genreResult.rows as unknown as { genre: string }[]).map(r => r.genre)
 
   const loadMoreHref = (() => {
     const p = new URLSearchParams(currentParams)

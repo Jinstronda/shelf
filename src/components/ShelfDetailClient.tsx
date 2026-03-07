@@ -63,7 +63,7 @@ export function ShelfDetailClient({ items, isOwner, shelfId }: Props) {
           gap: 20,
         }}>
           {items.map((item) => (
-            <a key={item.id} href={`/book/${item.googleId}`} style={{ textDecoration: 'none' }}>
+            <a key={item.id} href={item.googleId ? `/book/${item.googleId}` : '#'} style={{ textDecoration: 'none' }}>
               <div className="card" style={{
                 width: '100%', aspectRatio: '2/3', borderRadius: 4,
                 overflow: 'hidden', background: '#1c2028',
@@ -79,7 +79,7 @@ export function ShelfDetailClient({ items, isOwner, shelfId }: Props) {
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{item.title}</div>
                 <div style={{ fontSize: 12, color: '#567', marginTop: 2 }}>
-                  {item.authors[0]}
+                  {item.authors[0] ?? ''}
                 </div>
                 {item.ratingLabel && (
                   <div style={{ fontSize: 11, color: '#C4603A', marginTop: 2, letterSpacing: '0.05em' }}>

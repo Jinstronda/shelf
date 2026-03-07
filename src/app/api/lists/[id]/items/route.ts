@@ -82,14 +82,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'List not found' }, { status: 404 })
   }
 
-  await db.transaction(async (tx) => {
-    for (const { itemId, position } of positions) {
-      await tx
-        .update(listItems)
-        .set({ position })
-        .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
-    }
-  })
+  for (const { itemId, position } of positions) {
+    await db
+      .update(listItems)
+      .set({ position })
+      .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
+  }
 
   await db.update(lists).set({ updatedAt: new Date() }).where(eq(lists.id, listId))
 

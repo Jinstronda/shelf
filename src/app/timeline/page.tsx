@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userBooks, books } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { coverPublicUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
@@ -25,26 +25,42 @@ export default async function TimelinePage({ searchParams }: Props) {
   const yearParam = params.year ? parseInt(params.year, 10) : null
   const selectedYear = yearParam && yearParam >= 2000 && yearParam <= 2100 ? yearParam : null
 
+  const userId = session.user.id!
   const conditions = [
-    eq(userBooks.userId, session.user.id!),
+    eq(userBooks.userId, userId),
     eq(userBooks.status, 'read'),
   ]
+  if (selectedYear) {
+    conditions.push(
+      sql`EXTRACT(YEAR FROM COALESCE(${userBooks.readAt}::timestamp, ${userBooks.createdAt})) = ${selectedYear}`
+    )
+  }
 
-  const rows = await db
-    .select({
-      readAt: userBooks.readAt,
-      createdAt: userBooks.createdAt,
-      rating: userBooks.rating,
-      bookTitle: books.title,
-      bookGoogleId: books.googleId,
-      bookCoverUrl: books.coverUrl,
-      bookCoverR2Key: books.coverR2Key,
-    })
-    .from(userBooks)
-    .innerJoin(books, eq(userBooks.bookId, books.id))
-    .where(and(...conditions))
+  const [rows, yearRows] = await Promise.all([
+    db
+      .select({
+        readAt: userBooks.readAt,
+        createdAt: userBooks.createdAt,
+        rating: userBooks.rating,
+        bookTitle: books.title,
+        bookGoogleId: books.googleId,
+        bookCoverUrl: books.coverUrl,
+        bookCoverR2Key: books.coverR2Key,
+      })
+      .from(userBooks)
+      .innerJoin(books, eq(userBooks.bookId, books.id))
+      .where(and(...conditions))
+      .orderBy(desc(sql`COALESCE(${userBooks.readAt}::timestamp, ${userBooks.createdAt})`)),
+    db.execute(sql`
+      SELECT DISTINCT EXTRACT(YEAR FROM COALESCE(read_at::timestamp, created_at))::int AS year
+      FROM user_books WHERE user_id = ${userId} AND status = 'read'
+      AND COALESCE(read_at::timestamp, created_at) IS NOT NULL
+      ORDER BY year DESC
+    `),
+  ])
 
-  // derive the effective date for each entry
+  const years = (yearRows.rows as unknown as { year: number }[]).map(r => r.year)
+
   const entries = rows.map(r => {
     const dateStr = r.readAt ?? (r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null)
     const date = dateStr ? new Date(dateStr) : null
@@ -60,27 +76,10 @@ export default async function TimelinePage({ searchParams }: Props) {
     }
   })
 
-  // collect all years that have data
-  const yearsSet = new Set<number>()
-  for (const e of entries) {
-    if (e.year) yearsSet.add(e.year)
-  }
-  const years = Array.from(yearsSet).sort((a, b) => b - a)
-
-  // filter by selected year
-  const filtered = selectedYear
-    ? entries.filter(e => e.year === selectedYear)
-    : entries
-
   type Entry = typeof entries[number]
   type MonthGroup = { label: string; items: Entry[] }
 
-  const sortedEntries = [...filtered].sort((a, b) => {
-    if (!a.date && !b.date) return 0
-    if (!a.date) return 1
-    if (!b.date) return -1
-    return b.date.getTime() - a.date.getTime()
-  })
+  const sortedEntries = entries
 
   const grouped = new Map<string, MonthGroup>()
   for (const entry of sortedEntries) {
@@ -128,7 +127,7 @@ export default async function TimelinePage({ searchParams }: Props) {
             Timeline
           </h1>
           <div style={{ fontSize: 13, color: '#567', marginBottom: 24 }}>
-            {filtered.length} {filtered.length === 1 ? 'book' : 'books'} read
+            {entries.length} {entries.length === 1 ? 'book' : 'books'} read
             {selectedYear ? ` in ${selectedYear}` : ''}
           </div>
 
@@ -145,7 +144,7 @@ export default async function TimelinePage({ searchParams }: Props) {
             </div>
           )}
 
-          {filtered.length === 0 ? (
+          {entries.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
               <div style={{ fontSize: 15, marginBottom: 8 }}>No books read yet</div>
               <a href="/search" style={{ color: '#C4603A', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>

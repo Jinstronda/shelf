@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 
 type Book = {
   googleId: string
@@ -50,8 +50,13 @@ export function RandomizerClient({ books }: { books: Book[] }) {
   const [spinning, setSpinning] = useState(false)
   const [flashCover, setFlashCover] = useState<string | null>(null)
   const spinRef = useRef(false)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  const allGenres = [...new Set(books.flatMap(b => b.genres))].sort()
+  useEffect(() => {
+    return () => { timersRef.current.forEach(clearTimeout) }
+  }, [])
+
+  const allGenres = useMemo(() => [...new Set(books.flatMap(b => b.genres))].sort(), [books])
 
   const filtered = books.filter(b => {
     if (selectedGenres.size > 0 && !b.genres.some(g => selectedGenres.has(g))) return false
@@ -70,21 +75,28 @@ export function RandomizerClient({ books }: { books: Book[] }) {
   }, [])
 
   const pickRandom = useCallback(() => {
-    if (filtered.length === 0 || spinRef.current) return
+    const pool = books.filter(b => {
+      if (selectedGenres.size > 0 && !b.genres.some(g => selectedGenres.has(g))) return false
+      if (!matchesPageFilter(b, pageFilter)) return false
+      return true
+    })
+    if (pool.length === 0 || spinRef.current) return
     spinRef.current = true
+    timersRef.current.forEach(clearTimeout)
+    timersRef.current = []
     setSpinning(true)
     setChosenBook(null)
 
     const flashes = 6 + Math.floor(Math.random() * 3)
-    const winner = filtered[Math.floor(Math.random() * filtered.length)]
+    const winner = pool[Math.floor(Math.random() * pool.length)]
     let i = 0
 
     const flash = () => {
       if (i < flashes) {
-        const rand = filtered[Math.floor(Math.random() * filtered.length)]
+        const rand = pool[Math.floor(Math.random() * pool.length)]
         setFlashCover(rand.coverUrl)
         i++
-        setTimeout(flash, 80 + i * 15)
+        timersRef.current.push(setTimeout(flash, 80 + i * 15))
       } else {
         setFlashCover(null)
         setChosenBook(winner)
@@ -94,7 +106,7 @@ export function RandomizerClient({ books }: { books: Book[] }) {
     }
 
     flash()
-  }, [filtered])
+  }, [books, selectedGenres, pageFilter])
 
   if (books.length === 0) {
     return (

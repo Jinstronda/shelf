@@ -58,7 +58,7 @@ export function ShelvesClient({ initialShelves, isSignedIn }: { initialShelves: 
     })
     if (res.ok) {
       const shelf = await res.json()
-      setShelves([{ ...shelf, itemCount: 0, covers: [] }, ...userShelves])
+      setShelves(prev => [{ ...shelf, itemCount: 0, covers: [] }, ...prev])
       setName('')
       setDesc('')
       setCreating(false)
