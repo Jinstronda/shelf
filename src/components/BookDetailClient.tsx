@@ -26,6 +26,25 @@ interface AuthorBook {
   coverUrl: string | null
 }
 
+interface CommunityStats {
+  readCount: number
+  readingCount: number
+  wantCount: number
+  reviewCount: number
+  likedCount: number
+}
+
+interface CommunityReview {
+  id: string
+  userId: string
+  userName: string
+  userAvatar: string | null
+  rating: number | null
+  review: string
+  spoiler: boolean | null
+  date: string | null
+}
+
 interface Props {
   book: BookResult
   bookDbId: string | null
@@ -38,10 +57,14 @@ interface Props {
   userLog: UserLog | null
   userQuotes: BookQuote[]
   userTags: string[]
+  communityStats: CommunityStats
+  communityReviews: CommunityReview[]
+  totalCommunityReviewCount: number
 }
 
-export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags }: Props) {
+export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags, communityStats, communityReviews, totalCommunityReviewCount }: Props) {
   const [shareData, setShareData] = useState<{ rating: number | null, review: string } | null>(null)
+  const [revealedCommunity, setRevealedCommunity] = useState<Record<string, boolean>>({})
 
   return (
     <>
@@ -179,6 +202,159 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
                 </div>
               )
             })()}
+
+            {totalLogs > 0 && (
+              <div style={{ marginBottom: 32 }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                  color: '#567', textTransform: 'uppercase', marginBottom: 16,
+                }}>Community</div>
+                <div style={{
+                  display: 'flex', gap: 0,
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 6, overflow: 'hidden',
+                }}>
+                  {avgRating && (
+                    <div style={{
+                      flex: 1, padding: '16px 20px', textAlign: 'center',
+                      borderRight: '1px solid rgba(255,255,255,0.06)',
+                    }}>
+                      <div style={{ fontSize: 13, color: '#C4603A', marginBottom: 4 }}>
+                        {RATING_MAP[Math.round(avgRating)] ?? ''}
+                      </div>
+                      <div style={{
+                        fontSize: 22, fontFamily: 'Cormorant Garamond, serif',
+                        fontWeight: 700, color: '#C4603A', lineHeight: 1,
+                      }}>
+                        {(avgRating / 2).toFixed(1)}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#567', marginTop: 4 }}>avg rating</div>
+                    </div>
+                  )}
+                  <div style={{
+                    flex: 1, padding: '16px 20px', textAlign: 'center',
+                    borderRight: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{
+                      fontSize: 22, fontFamily: 'Cormorant Garamond, serif',
+                      fontWeight: 700, color: '#ccc', lineHeight: 1,
+                    }}>
+                      {totalLogs}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#567', marginTop: 4 }}>readers</div>
+                    <div style={{ fontSize: 10, color: '#456', marginTop: 2 }}>
+                      {[
+                        communityStats.readCount > 0 && `${communityStats.readCount} read`,
+                        communityStats.readingCount > 0 && `${communityStats.readingCount} reading`,
+                        communityStats.wantCount > 0 && `${communityStats.wantCount} want`,
+                      ].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  <div style={{
+                    flex: 1, padding: '16px 20px', textAlign: 'center',
+                    borderRight: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <div style={{
+                      fontSize: 22, fontFamily: 'Cormorant Garamond, serif',
+                      fontWeight: 700, color: '#ccc', lineHeight: 1,
+                    }}>
+                      {communityStats.reviewCount}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#567', marginTop: 4 }}>reviews</div>
+                  </div>
+                  <div style={{ flex: 1, padding: '16px 20px', textAlign: 'center' }}>
+                    <div style={{
+                      fontSize: 22, fontFamily: 'Cormorant Garamond, serif',
+                      fontWeight: 700, color: '#ccc', lineHeight: 1,
+                    }}>
+                      {communityStats.likedCount}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#567', marginTop: 4 }}>likes</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {communityReviews.length > 0 && (
+              <div style={{ marginBottom: 32 }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                  color: '#567', textTransform: 'uppercase', marginBottom: 16,
+                }}>Community Reviews</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {communityReviews.map((r, i) => {
+                    const isSpoiler = r.spoiler && !revealedCommunity[r.id]
+                    return (
+                      <div key={r.id} style={{
+                        padding: '14px 0',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <a href={`/user/${r.userId}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {r.userAvatar ? (
+                              <img src={r.userAvatar} alt="" style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                            ) : (
+                              <div style={{
+                                width: 24, height: 24, borderRadius: '50%', background: '#2a2e36',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 11, color: '#567',
+                              }}>
+                                {r.userName[0]}
+                              </div>
+                            )}
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#ccc' }}>{r.userName}</span>
+                          </a>
+                          {r.rating && (
+                            <span style={{ fontSize: 13, color: '#C4603A' }}>{RATING_MAP[r.rating]}</span>
+                          )}
+                        </div>
+                        {isSpoiler ? (
+                          <div>
+                            <p style={{
+                              fontSize: 13, lineHeight: 1.7, color: '#9ab', margin: 0,
+                              filter: 'blur(5px)', userSelect: 'none',
+                            }}>
+                              {r.review.slice(0, 150)}
+                            </p>
+                            <div style={{ marginTop: 4 }}>
+                              <span style={{ fontSize: 12, color: '#C4603A', fontStyle: 'italic' }}>Contains spoilers</span>
+                              {' '}
+                              <button
+                                onClick={() => setRevealedCommunity(prev => ({ ...prev, [r.id]: true }))}
+                                style={{
+                                  fontSize: 11, color: '#C4603A', background: 'none', border: 'none',
+                                  cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit', padding: 0,
+                                }}
+                              >
+                                Show Review
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: 13, lineHeight: 1.7, color: '#9ab', margin: 0 }}>
+                            {r.review.length > 150 ? `${r.review.slice(0, 150)}...` : r.review}
+                          </p>
+                        )}
+                        {r.date && (
+                          <span style={{ fontSize: 11, color: '#456', marginTop: 6, display: 'inline-block' }}>
+                            {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {totalCommunityReviewCount > 5 && (
+                  <a href={`/book/${book.googleId}/reviews`} style={{
+                    display: 'inline-block', marginTop: 12, fontSize: 12, color: '#C4603A',
+                    textDecoration: 'none', fontWeight: 600,
+                  }}>
+                    See all {totalCommunityReviewCount} reviews
+                  </a>
+                )}
+              </div>
+            )}
 
             {reviews.length > 0 && <ReviewList reviews={reviews} />}
 

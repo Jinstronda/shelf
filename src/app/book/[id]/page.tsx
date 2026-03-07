@@ -199,6 +199,97 @@ async function getAuthorBooks(authorName: string, excludeDbId: string) {
   }
 }
 
+async function getCommunityStats(bookId: string | null) {
+  try {
+    if (!bookId) return { readCount: 0, readingCount: 0, wantCount: 0, reviewCount: 0, likedCount: 0 }
+
+    const statusRows = await db
+      .select({
+        status: userBooks.status,
+        cnt: sql<number>`count(*)`,
+      })
+      .from(userBooks)
+      .where(eq(userBooks.bookId, bookId))
+      .groupBy(userBooks.status)
+
+    const statusMap = Object.fromEntries(statusRows.map(r => [r.status, Number(r.cnt)]))
+
+    const [[reviewRow], [likedRow]] = await Promise.all([
+      db
+        .select({ cnt: sql<number>`count(*)` })
+        .from(userBooks)
+        .where(and(eq(userBooks.bookId, bookId), sql`${userBooks.review} IS NOT NULL`)),
+      db
+        .select({ cnt: sql<number>`count(*)` })
+        .from(userBooks)
+        .where(and(eq(userBooks.bookId, bookId), eq(userBooks.liked, true))),
+    ])
+
+    return {
+      readCount: statusMap['read'] ?? 0,
+      readingCount: statusMap['reading'] ?? 0,
+      wantCount: statusMap['want'] ?? 0,
+      reviewCount: Number(reviewRow?.cnt ?? 0),
+      likedCount: Number(likedRow?.cnt ?? 0),
+    }
+  } catch (err) {
+    console.error('getCommunityStats:', err)
+    return { readCount: 0, readingCount: 0, wantCount: 0, reviewCount: 0, likedCount: 0 }
+  }
+}
+
+async function getCommunityReviews(bookId: string | null, excludeUserId: string | null) {
+  try {
+    if (!bookId) return { communityReviews: [], totalReviewCount: 0 }
+
+    const conditions = [
+      eq(userBooks.bookId, bookId),
+      sql`${userBooks.review} IS NOT NULL`,
+    ]
+    if (excludeUserId) conditions.push(ne(userBooks.userId, excludeUserId))
+
+    const [rows, [countRow]] = await Promise.all([
+      db
+        .select({
+          id: userBooks.id,
+          rating: userBooks.rating,
+          review: userBooks.review,
+          spoiler: userBooks.spoiler,
+          userId: userBooks.userId,
+          updatedAt: userBooks.updatedAt,
+          userName: users.name,
+          userAvatar: users.avatarUrl,
+        })
+        .from(userBooks)
+        .leftJoin(users, eq(userBooks.userId, users.id))
+        .where(and(...conditions))
+        .orderBy(desc(userBooks.updatedAt))
+        .limit(5),
+      db
+        .select({ cnt: sql<number>`count(*)` })
+        .from(userBooks)
+        .where(and(...conditions)),
+    ])
+
+    return {
+      communityReviews: rows.map(r => ({
+        id: r.id,
+        userId: r.userId,
+        userName: r.userName ?? 'Reader',
+        userAvatar: r.userAvatar,
+        rating: r.rating,
+        review: r.review!,
+        spoiler: r.spoiler,
+        date: r.updatedAt?.toISOString() ?? null,
+      })),
+      totalReviewCount: Number(countRow?.cnt ?? 0),
+    }
+  } catch (err) {
+    console.error('getCommunityReviews:', err)
+    return { communityReviews: [], totalReviewCount: 0 }
+  }
+}
+
 async function getUserQuotes(bookId: string | null, userId: string) {
   try {
     if (!bookId) return []
@@ -242,13 +333,15 @@ export default async function BookPage({ params }: Props) {
 
   const primaryAuthor = book.authors[0] ?? null
 
-  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes, userTags] = await Promise.all([
+  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes, userTags, communityStats, { communityReviews, totalReviewCount }] = await Promise.all([
     getReviews(bookDbId),
     getRelatedBooks(bookDbId),
     session?.user?.id ? getUserLog(bookDbId, session.user.id) : null,
     primaryAuthor && bookDbId ? getAuthorBooks(primaryAuthor, bookDbId) : [],
     session?.user?.id ? getUserQuotes(bookDbId, session.user.id) : [],
     session?.user?.id ? getUserTags(bookDbId, session.user.id) : [],
+    getCommunityStats(bookDbId),
+    getCommunityReviews(bookDbId, session?.user?.id ?? null),
   ])
   return (
     <BookDetailClient
@@ -263,6 +356,9 @@ export default async function BookPage({ params }: Props) {
       userLog={userLog}
       userQuotes={userQuotes}
       userTags={userTags}
+      communityStats={communityStats}
+      communityReviews={communityReviews}
+      totalCommunityReviewCount={totalReviewCount}
     />
   )
 }
