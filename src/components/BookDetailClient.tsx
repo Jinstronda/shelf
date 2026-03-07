@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { toPng } from 'html-to-image'
 import { NavScroll } from './NavScroll'
 import { SearchBar } from './SearchBar'
 import { AuthNav } from './AuthNav'
@@ -45,6 +46,8 @@ export function BookDetailClient({ book }: { book: BookResult }) {
   const [saved, setSaved]     = useState(false)
   const [saving, setSaving]   = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [copied, setCopied]   = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
 
   const displayRating = hover ?? rating
@@ -322,12 +325,12 @@ export function BookDetailClient({ book }: { book: BookResult }) {
             overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.8)',
           }}>
             {/* Share card preview */}
-            <div style={{
+            <div ref={cardRef} style={{
               background: '#0d0d0d', padding: 24,
               display: 'flex', gap: 16, alignItems: 'flex-start',
             }}>
               <div style={{ width: 70, height: 105, borderRadius: 3, overflow: 'hidden', flexShrink: 0, background: '#222' }}>
-                {book.coverUrl && <img src={book.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                {book.coverUrl && <img src={book.coverUrl} alt="" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 6 }}>{book.title}</div>
@@ -339,19 +342,56 @@ export function BookDetailClient({ book }: { book: BookResult }) {
                 )}
                 {review && (
                   <div style={{ fontSize: 12, color: '#9ab', lineHeight: 1.55, fontStyle: 'italic' }}>
-                    &ldquo;{review.slice(0, 120)}{review.length > 120 ? '…' : ''}&rdquo;
+                    &ldquo;{review.slice(0, 120)}{review.length > 120 ? '...' : ''}&rdquo;
                   </div>
                 )}
                 <div style={{ marginTop: 14, fontSize: 10, color: '#456', letterSpacing: '0.08em' }}>shelf.app</div>
               </div>
             </div>
             <div style={{ padding: 16, display: 'flex', gap: 8 }}>
-              <button style={{
-                flex: 1, background: 'var(--copper)', color: '#fff', border: 'none',
+              <button onClick={async () => {
+                if (!cardRef.current) return
+                try {
+                  const dataUrl = await toPng(cardRef.current, { pixelRatio: 2 })
+                  const res = await fetch(dataUrl)
+                  const blob = await res.blob()
+                  await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob }),
+                  ])
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                } catch {
+                  // Fallback: download the image
+                  const dataUrl = await toPng(cardRef.current!, { pixelRatio: 2 })
+                  const link = document.createElement('a')
+                  link.download = `shelf-${book.title.toLowerCase().replace(/\s+/g, '-')}.png`
+                  link.href = dataUrl
+                  link.click()
+                }
+              }} style={{
+                flex: 1, background: copied ? '#2a5a3a' : '#C4603A', color: '#fff', border: 'none',
                 borderRadius: 4, padding: '10px', fontSize: 13, fontWeight: 700,
-                fontFamily: 'inherit', cursor: 'pointer',
+                fontFamily: 'inherit', cursor: 'pointer', transition: 'background 0.15s',
               }}>
-                Copy Image
+                {copied ? 'Copied!' : 'Copy Image'}
+              </button>
+              <button onClick={async () => {
+                if (!cardRef.current) return
+                const dataUrl = await toPng(cardRef.current, { pixelRatio: 2 })
+                const link = document.createElement('a')
+                link.download = `shelf-${book.title.toLowerCase().replace(/\s+/g, '-')}.png`
+                link.href = dataUrl
+                link.click()
+              }} style={{
+                background: 'rgba(255,255,255,0.07)', color: '#9ab', border: 'none',
+                borderRadius: 4, padding: '10px 16px', fontSize: 13,
+                fontFamily: 'inherit', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Save
               </button>
               <button onClick={() => setSharing(false)} style={{
                 background: 'rgba(255,255,255,0.07)', color: '#789', border: 'none',
