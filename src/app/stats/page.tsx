@@ -14,6 +14,7 @@ import { ChallengesCard } from '@/components/ChallengesCard'
 import { GenreChart } from '@/components/GenreChart'
 import { FormatStats } from '@/components/FormatStats'
 import { RatingDistribution } from '@/components/RatingDistribution'
+import { ReadingPace } from '@/components/ReadingPace'
 import { StatsShareCard } from '@/components/StatsShareCard'
 import { RATING_MAP } from '@/lib/constants'
 import type { Metadata } from 'next'
@@ -112,6 +113,20 @@ export default async function StatsPage() {
     .sort((a, b) => b.rating! - a.rating!)
     .slice(0, 5)
 
+  const dayOfYear = Math.floor((Date.now() - yearStart.getTime()) / 86400000) || 1
+  const pagesPerDay = totalPages / dayOfYear
+  const avgDaysPerBook = thisYear.length > 0 ? dayOfYear / thisYear.length : 0
+
+  const monthCounts = new Array(12).fill(0)
+  for (const r of thisYear) {
+    const d = r.readAt ?? r.updatedAt
+    if (d) monthCounts[new Date(d).getMonth()]++
+  }
+  const booksPerMonth = monthCounts.map((count, i) => ({
+    month: new Date(year, i).toLocaleString('en', { month: 'short' }),
+    count,
+  }))
+
   const statBoxStyle = {
     background: '#1c2028', borderRadius: 6, padding: '24px 20px',
     textAlign: 'center' as const,
@@ -164,6 +179,14 @@ export default async function StatsPage() {
           <GenreChart data={genreData} />
 
           <RatingDistribution data={ratingData} />
+
+          <ReadingPace
+            pagesPerDay={pagesPerDay}
+            avgDaysPerBook={avgDaysPerBook}
+            booksPerMonth={booksPerMonth}
+            totalBooks={thisYear.length}
+            totalPages={totalPages}
+          />
 
           <FormatStats data={formatData} />
 

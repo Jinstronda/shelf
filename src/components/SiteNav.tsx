@@ -18,6 +18,8 @@ export function SiteNav() {
         <li><a href="/discover">Discover</a></li>
         <li><a href="/books">Books</a></li>
         <li><a href="/lists">Lists</a></li>
+        <li><a href="/shelves">Shelves</a></li>
+        <li><a href="/library">Library</a></li>
         <li><a href="/journal">Journal</a></li>
         <li><a href="/timeline">Timeline</a></li>
         <li><a href="/reviews">Reviews</a></li>

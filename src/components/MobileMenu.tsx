@@ -6,6 +6,8 @@ const NAV_LINKS = [
   { href: '/discover', label: 'Discover' },
   { href: '/books', label: 'Books' },
   { href: '/lists', label: 'Lists' },
+  { href: '/shelves', label: 'Shelves' },
+  { href: '/library', label: 'Library' },
   { href: '/journal', label: 'Journal' },
   { href: '/timeline', label: 'Timeline' },
   { href: '/reviews', label: 'Reviews' },

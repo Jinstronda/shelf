@@ -192,6 +192,28 @@ export const reReads = pgTable('re_reads', {
   bookIdx: index('re_reads_book_idx').on(t.bookId),
 }))
 
+export const shelves = pgTable('shelves', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  userId:      text('user_id').notNull(),
+  name:        text('name').notNull(),
+  description: text('description'),
+  isPublic:    boolean('is_public').default(true),
+  createdAt:   timestamp('created_at').defaultNow(),
+}, (t) => ({
+  userIdx:    index('shelves_user_idx').on(t.userId),
+  uniqueName: uniqueIndex('shelves_unique_name').on(t.userId, t.name),
+}))
+
+export const shelfItems = pgTable('shelf_items', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  shelfId:   uuid('shelf_id').notNull().references(() => shelves.id, { onDelete: 'cascade' }),
+  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  shelfIdx:   index('shelf_items_shelf_idx').on(t.shelfId),
+  uniqueItem: uniqueIndex('shelf_items_unique').on(t.shelfId, t.bookId),
+}))
+
 export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
@@ -207,3 +229,5 @@ export type Challenge     = typeof challenges.$inferSelect
 export type BookQuote     = typeof bookQuotes.$inferSelect
 export type BookTag       = typeof bookTags.$inferSelect
 export type ReRead        = typeof reReads.$inferSelect
+export type Shelf         = typeof shelves.$inferSelect
+export type ShelfItem     = typeof shelfItems.$inferSelect
