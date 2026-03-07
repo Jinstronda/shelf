@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getGoogleBook } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
 import { db } from '@/lib/db'
-import { books, userBooks, users, reviewLikes, reviewComments } from '@/lib/schema'
+import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes } from '@/lib/schema'
 import { eq, and, desc, ne, sql, count } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { notFound } from 'next/navigation'
@@ -197,6 +197,20 @@ async function getAuthorBooks(authorName: string, excludeDbId: string) {
   }
 }
 
+async function getUserQuotes(bookId: string | null, userId: string) {
+  try {
+    if (!bookId) return []
+    return await db
+      .select()
+      .from(bookQuotes)
+      .where(and(eq(bookQuotes.bookId, bookId), eq(bookQuotes.userId, userId)))
+      .orderBy(desc(bookQuotes.createdAt))
+  } catch (err) {
+    console.error('getUserQuotes:', err)
+    return []
+  }
+}
+
 export default async function BookPage({ params }: Props) {
   const { id } = await params
   const [book, session] = await Promise.all([fetchBook(id), auth()])
@@ -211,11 +225,12 @@ export default async function BookPage({ params }: Props) {
 
   const primaryAuthor = book.authors[0] ?? null
 
-  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks] = await Promise.all([
+  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes] = await Promise.all([
     getReviews(bookDbId),
     getRelatedBooks(bookDbId),
     session?.user?.id ? getUserLog(bookDbId, session.user.id) : null,
     primaryAuthor && bookDbId ? getAuthorBooks(primaryAuthor, bookDbId) : [],
+    session?.user?.id ? getUserQuotes(bookDbId, session.user.id) : [],
   ])
   return (
     <BookDetailClient
@@ -228,6 +243,7 @@ export default async function BookPage({ params }: Props) {
       relatedBooks={relatedBooks}
       authorBooks={authorBooks}
       userLog={userLog}
+      userQuotes={userQuotes}
     />
   )
 }

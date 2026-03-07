@@ -140,6 +140,31 @@ export const reviewComments = pgTable('review_comments', {
   reviewIdx: index('review_comments_review_idx').on(t.reviewId),
 }))
 
+export const bookQuotes = pgTable('book_quotes', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  userId:     text('user_id').notNull(),
+  bookId:     uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  quote:      text('quote').notNull(),
+  pageNumber: integer('page_number'),
+  chapter:    text('chapter'),
+  createdAt:  timestamp('created_at').defaultNow(),
+}, (t) => ({
+  userIdx: index('book_quotes_user_idx').on(t.userId),
+  bookIdx: index('book_quotes_book_idx').on(t.bookId),
+}))
+
+export const challenges = pgTable('challenges', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    text('user_id').notNull(),
+  type:      text('type').notNull(), // 'monthly' | 'yearly'
+  year:      integer('year').notNull(),
+  month:     integer('month'),
+  target:    integer('target').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniqueChallenge: uniqueIndex('challenges_unique').on(t.userId, t.type, t.year, t.month),
+}))
+
 export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
@@ -151,3 +176,5 @@ export type FavoriteBook = typeof favoriteBooks.$inferSelect
 export type Notification = typeof notifications.$inferSelect
 export type ReviewLike    = typeof reviewLikes.$inferSelect
 export type ReviewComment = typeof reviewComments.$inferSelect
+export type Challenge     = typeof challenges.$inferSelect
+export type BookQuote     = typeof bookQuotes.$inferSelect

@@ -17,7 +17,10 @@ export function SiteFooter() {
           <a href="/terms">Terms</a>
         </div>
       </div>
-      <div className="footer-copy">&copy; {new Date().getFullYear()} Shelf</div>
+      <div className="footer-copy" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span>&copy; {new Date().getFullYear()} Shelf</span>
+        <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>Keyboard shortcuts (?)</span>
+      </div>
     </footer>
   )
 }

@@ -4,9 +4,11 @@ import { SiteNav } from './SiteNav'
 import { ShareCardModal } from './ShareCardModal'
 import { ReviewList } from './ReviewList'
 import { LogBookForm } from './LogBookForm'
+import { QuotesSection } from './QuotesSection'
 import type { BookResult } from '@/lib/google-books'
 import type { Review } from './ReviewList'
 import type { UserLog } from './LogBookForm'
+import type { BookQuote } from '@/lib/schema'
 import { RATING_MAP } from '@/lib/constants'
 
 interface RelatedBook {
@@ -33,9 +35,10 @@ interface Props {
   relatedBooks: RelatedBook[]
   authorBooks: AuthorBook[]
   userLog: UserLog | null
+  userQuotes: BookQuote[]
 }
 
-export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog }: Props) {
+export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes }: Props) {
   const [shareData, setShareData] = useState<{ rating: number | null, review: string } | null>(null)
 
   return (
@@ -113,6 +116,10 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
               userLog={userLog}
               onShare={(rating, review) => setShareData({ rating, review })}
             />
+
+            {bookDbId && (
+              <QuotesSection bookDbId={bookDbId} initialQuotes={userQuotes} />
+            )}
 
             {totalLogs > 0 && (
               <div style={{

@@ -19,6 +19,7 @@ export function SiteNav() {
         <li><a href="/books">Books</a></li>
         <li><a href="/lists">Lists</a></li>
         <li><a href="/journal">Journal</a></li>
+        <li><a href="/quotes">Quotes</a></li>
         <li><a href="/import">Import</a></li>
         <li><a href="/members">Members</a></li>
       </ul>

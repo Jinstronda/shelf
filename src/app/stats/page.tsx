@@ -10,6 +10,7 @@ import { YearInReviewCard } from '@/components/YearInReviewCard'
 import { getReadingStreak } from '@/lib/queries'
 import { ReadingStreak } from '@/components/ReadingStreak'
 import { ReadingCalendar } from '@/components/ReadingCalendar'
+import { ChallengesCard } from '@/components/ChallengesCard'
 import { RATING_MAP } from '@/lib/constants'
 import type { Metadata } from 'next'
 
@@ -118,6 +119,8 @@ export default async function StatsPage() {
             booksRead={thisYear.length}
             initialTarget={goal?.target ?? null}
           />
+
+          <ChallengesCard />
 
           {thisYear.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
