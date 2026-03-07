@@ -1,11 +1,11 @@
+import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { lists, listItems, books } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
-import { NavScroll } from '@/components/NavScroll'
-import { SearchBar } from '@/components/SearchBar'
-import { AuthNav } from '@/components/AuthNav'
-import { LogoSVG } from '@/components/Logo'
+import { SiteNav } from '@/components/SiteNav'
+import { SiteFooter } from '@/components/SiteFooter'
+import { ListDetailClient } from '@/components/ListDetailClient'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -24,28 +24,31 @@ export default async function ListDetailPage({ params }: Props) {
   const [list] = await db.select().from(lists).where(eq(lists.id, id)).limit(1)
   if (!list) notFound()
 
-  const items = await db
+  const session = await auth()
+  if (!list.isPublic && list.userId !== session?.user?.id) notFound()
+
+  const isOwner = session?.user?.id === list.userId
+
+  const rawItems = await db
     .select()
     .from(listItems)
     .innerJoin(books, eq(listItems.bookId, books.id))
     .where(eq(listItems.listId, id))
     .orderBy(listItems.position)
 
+  const items = rawItems.map(({ list_items: item, books: book }) => ({
+    id: item.id,
+    bookId: item.bookId,
+    googleId: book.googleId,
+    title: book.title,
+    authors: book.authors,
+    coverUrl: book.coverUrl,
+    position: item.position,
+  }))
+
   return (
     <>
-      <NavScroll>
-        <a className="nav-logo" href="/">
-          <LogoSVG />
-          <span className="nav-logo-text">Shelf</span>
-        </a>
-        <ul className="nav-links">
-          <AuthNav />
-          <li><a href="/books">Books</a></li>
-          <li><a href="/lists">Lists</a></li>
-          <li><a href="/members">Members</a></li>
-        </ul>
-        <SearchBar />
-      </NavScroll>
+      <SiteNav />
 
       <div style={{ paddingTop: 80, minHeight: '100vh' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
@@ -67,42 +70,11 @@ export default async function ListDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {items.length > 0 ? (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: 20,
-            }}>
-              {items.map(({ list_items: item, books: book }) => (
-                <a key={item.id} href={`/book/${book.googleId}`} style={{ textDecoration: 'none' }}>
-                  <div className="card" style={{
-                    width: '100%', aspectRatio: '2/3', borderRadius: 4,
-                    overflow: 'hidden', background: '#1c2028',
-                  }}>
-                    {book.coverUrl && (
-                      <img src={book.coverUrl} alt={book.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )}
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{
-                      fontSize: 13, fontWeight: 600, color: '#ccc', lineHeight: 1.3,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>{book.title}</div>
-                    <div style={{ fontSize: 12, color: '#567', marginTop: 2 }}>
-                      {book.authors[0]}
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
-              This list is empty. Add books from their detail pages.
-            </div>
-          )}
+          <ListDetailClient items={items} isOwner={isOwner} listId={id} />
         </div>
       </div>
+
+      <SiteFooter />
     </>
   )
 }

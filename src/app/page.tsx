@@ -1,8 +1,12 @@
-import { SearchBar } from '@/components/SearchBar'
-import { NavScroll } from '@/components/NavScroll'
-import { BookCard } from '@/components/BookCard'
-import { AuthNav } from '@/components/AuthNav'
-import { LogoSVG } from '@/components/Logo'
+import { db } from '@/lib/db'
+import { books, userBooks } from '@/lib/schema'
+import { eq, desc, count, avg } from 'drizzle-orm'
+import { RATING_MAP, CARD_VARIANTS as CV } from '@/lib/constants'
+import { coverPublicUrl } from '@/lib/covers'
+import { SiteNav } from '@/components/SiteNav'
+import { SiteFooter } from '@/components/SiteFooter'
+import { CurrentlyReading } from '@/components/CurrentlyReading'
+import { Recommendations } from '@/components/Recommendations'
 
 const BOOKS_ROW1 = [
   { isbn: '0679728759', title: 'Blood Meridian',         author: 'Cormac McCarthy',  rating: '★★★★★', cv: 'cv1' },
@@ -19,39 +23,85 @@ const BOOKS_ROW1 = [
   { isbn: '0679745580', title: 'The Stranger',           author: 'Albert Camus',     rating: '★★★★',  cv: 'cva' },
 ]
 
-const BOOKS_ROW2 = [
-  { isbn: '0061020052', title: 'The Dispossessed',  author: 'Ursula K. Le Guin',  rating: '★★★★★', cv: 'cv5' },
-  { isbn: '0671746472', title: 'Lonesome Dove',     author: 'Larry McMurtry',      rating: '★★★★½', cv: 'cv2' },
-  { isbn: '0312243656', title: 'Gilead',             author: 'Marilynne Robinson',  rating: '★★★★',  cv: 'cv3' },
-  { isbn: '0802133908', title: 'Pedro Páramo',       author: 'Juan Rulfo',          rating: '★★★★★', cv: 'cv4' },
-  { isbn: '0679724222', title: 'The Plague',         author: 'Albert Camus',        rating: '★★★★½', cv: 'cv7' },
-  { isbn: '0374529019', title: '2666',               author: 'Roberto Bolaño',      rating: '★★★★★', cv: 'cv8' },
-  { isbn: '0312422300', title: 'Housekeeping',       author: 'Marilynne Robinson',  rating: '★★★★',  cv: 'cva' },
-  { isbn: '0811200140', title: 'The Tin Drum',       author: 'Günter Grass',        rating: '★★★★★', cv: 'cvb' },
-  { isbn: '0811216004', title: 'Austerlitz',         author: 'W.G. Sebald',         rating: '★★★★',  cv: 'cvc' },
-  { isbn: '0679745246', title: 'Remainder',          author: 'Tom McCarthy',        rating: '★★★★',  cv: 'cv9' },
-  { isbn: '0679720200', title: 'Never Let Me Go',    author: 'Kazuo Ishiguro',      rating: '★★★★½', cv: 'cv6' },
-  { isbn: '0679724260', title: 'The Stranger',       author: 'Albert Camus',        rating: '★★★★',  cv: 'cv1' },
-]
+export const revalidate = 3600
 
+async function getPopularBooks() {
+  try {
+    const rows = await db
+      .select({
+        bookId:    books.id,
+        googleId:  books.googleId,
+        title:     books.title,
+        coverUrl:  books.coverUrl,
+        coverR2Key: books.coverR2Key,
+        logs:      count(userBooks.id),
+        avgRating: avg(userBooks.rating),
+      })
+      .from(userBooks)
+      .innerJoin(books, eq(userBooks.bookId, books.id))
+      .groupBy(books.id, books.googleId, books.title, books.coverUrl, books.coverR2Key)
+      .orderBy(desc(count(userBooks.id)))
+      .limit(12)
 
-export default function HomePage() {
+    return rows
+      .filter(r => r.googleId)
+      .map(r => ({
+        googleId: r.googleId!,
+        title: r.title,
+        coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+        avgRating: r.avgRating ? Math.round(parseFloat(r.avgRating)) : null,
+      }))
+  } catch (err) {
+    console.error('getPopularBooks:', err)
+    return []
+  }
+}
+
+async function getRecentlyLogged() {
+  try {
+    const rows = await db
+      .select({
+        googleId:   books.googleId,
+        title:      books.title,
+        coverUrl:   books.coverUrl,
+        coverR2Key: books.coverR2Key,
+        rating:     userBooks.rating,
+      })
+      .from(userBooks)
+      .innerJoin(books, eq(userBooks.bookId, books.id))
+      .where(eq(userBooks.status, 'read'))
+      .orderBy(desc(userBooks.updatedAt))
+      .limit(12)
+
+    const seen = new Set<string>()
+    const deduped: typeof rows = []
+    for (const r of rows) {
+      if (r.googleId && !seen.has(r.googleId)) {
+        seen.add(r.googleId)
+        deduped.push(r)
+      }
+    }
+    return deduped.map(r => ({
+      googleId: r.googleId!,
+      title: r.title,
+      coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+      rating: r.rating,
+    }))
+  } catch (err) {
+    console.error('getRecentlyLogged:', err)
+    return []
+  }
+}
+
+export default async function HomePage() {
+  const [popularBooks, recentlyLogged] = await Promise.all([
+    getPopularBooks(),
+    getRecentlyLogged(),
+  ])
+
   return (
     <>
-      <NavScroll>
-        <a className="nav-logo" href="/">
-          <LogoSVG />
-          <span className="nav-logo-text">Shelf</span>
-        </a>
-        <ul className="nav-links">
-          <AuthNav />
-          <li><a href="/books">Books</a></li>
-          <li><a href="/lists">Lists</a></li>
-          <li><a href="/members">Members</a></li>
-          <li><a href="/journal">Journal</a></li>
-        </ul>
-        <SearchBar />
-      </NavScroll>
+      <SiteNav />
 
       <section className="hero">
         <div className="hero-photo" />
@@ -63,7 +113,7 @@ export default function HomePage() {
             Save the ones you want to read.<br />
             Tell the world what you think.
           </h1>
-          <a className="hero-cta" href="/create-account">Get started — it&apos;s free!</a>
+          <a className="hero-cta" href="/api/auth/signin">Get started — it&apos;s free!</a>
           <div className="hero-tagline">
             <span>The social network for book lovers.</span>
             <div className="dot" />
@@ -75,10 +125,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      <CurrentlyReading />
+
+      <Recommendations />
+
       <div className="section">
         <div className="section-label">Recently logged</div>
         <div className="poster-row">
-          {BOOKS_ROW1.map(b => <BookCard key={b.isbn} {...b} />)}
+          {recentlyLogged.length > 0
+            ? recentlyLogged.map((b, i) => (
+                <a key={b.googleId} href={`/book/${b.googleId}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
+                  {b.coverUrl && (
+                    <img src={b.coverUrl} alt={b.title} />
+                  )}
+                  <div className="card-hover">
+                    {b.rating && (
+                      <span className="card-rating">{RATING_MAP[b.rating]}</span>
+                    )}
+                  </div>
+                </a>
+              ))
+            : BOOKS_ROW1.map((b, i) => (
+                <a key={b.isbn} href={`/book/${b.isbn}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
+                  <img src={`https://covers.openlibrary.org/b/isbn/${b.isbn}-L.jpg`} alt={b.title} />
+                  <div className="card-hover">
+                    <span className="card-rating">{b.rating}</span>
+                  </div>
+                </a>
+              ))
+          }
         </div>
       </div>
 
@@ -112,30 +187,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="section">
-        <div className="section-label">Popular this week</div>
-        <div className="poster-row">
-          {BOOKS_ROW2.map(b => <BookCard key={b.isbn + b.title} {...b} />)}
-        </div>
-      </div>
-
-      <footer>
-        <div className="footer-l">
-          <a className="footer-logo" href="/">
-            <LogoSVG size={22} />
-            <span>Shelf</span>
-          </a>
-          <div className="footer-links">
-            <a href="/about">About</a>
-            <a href="/books">Books</a>
-            <a href="/pro">Pro</a>
-            <a href="/contact">Contact</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
+      {popularBooks.length > 0 && (
+        <div className="section">
+          <div className="section-label">Popular on Shelf</div>
+          <div className="poster-row">
+            {popularBooks.map((b, i) => (
+              <a key={b.googleId} href={`/book/${b.googleId}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
+                {b.coverUrl && (
+                  <img src={b.coverUrl} alt={b.title} />
+                )}
+                <div className="card-hover">
+                  {b.avgRating && (
+                    <span className="card-rating">{RATING_MAP[b.avgRating]}</span>
+                  )}
+                </div>
+              </a>
+            ))}
           </div>
         </div>
-        <div className="footer-copy">© 2025 Shelf</div>
-      </footer>
+      )}
+
+      <SiteFooter />
     </>
   )
 }

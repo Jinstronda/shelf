@@ -28,6 +28,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'List not found' }, { status: 404 })
   }
 
+  // Check for duplicate
+  const [existing] = await db
+    .select()
+    .from(listItems)
+    .where(and(eq(listItems.listId, listId), eq(listItems.bookId, bookId)))
+    .limit(1)
+  if (existing) {
+    return NextResponse.json({ error: 'Book already in list' }, { status: 409 })
+  }
+
   // Get next position
   const [maxPos] = await db
     .select({ maxPosition: max(listItems.position) })
@@ -45,6 +55,45 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await db.update(lists).set({ updatedAt: new Date() }).where(eq(lists.id, listId))
 
   return NextResponse.json(item, { status: 201 })
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { id: listId } = await params
+  const { positions } = await req.json() as {
+    positions: { itemId: string, position: number }[]
+  }
+
+  if (!Array.isArray(positions) || positions.length === 0) {
+    return NextResponse.json({ error: 'positions array required' }, { status: 400 })
+  }
+
+  const [list] = await db
+    .select()
+    .from(lists)
+    .where(and(eq(lists.id, listId), eq(lists.userId, session.user.id)))
+    .limit(1)
+
+  if (!list) {
+    return NextResponse.json({ error: 'List not found' }, { status: 404 })
+  }
+
+  await db.transaction(async (tx) => {
+    for (const { itemId, position } of positions) {
+      await tx
+        .update(listItems)
+        .set({ position })
+        .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
+    }
+  })
+
+  await db.update(lists).set({ updatedAt: new Date() }).where(eq(lists.id, listId))
+
+  return NextResponse.json({ updated: true })
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

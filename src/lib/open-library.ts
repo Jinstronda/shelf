@@ -9,7 +9,10 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Book
   const res = await fetch(`https://openlibrary.org/search.json?${params}`, {
     next: { revalidate: 3600 },
   })
-  if (!res.ok) return []
+  if (!res.ok) {
+    console.error(`[open-library] API returned ${res.status} for query: ${query}`)
+    return []
+  }
   const data = await res.json()
 
   return (data.docs ?? []).map((doc: any): BookResult => {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { userBooks, books } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { userBooks, books, notifications, users, favoriteBooks } from '@/lib/schema'
+import { eq, and, ne, sql } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { bookId, status, rating, review, liked } = body
+  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt } = body
 
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
@@ -22,60 +22,84 @@ export async function POST(req: NextRequest) {
   if (status && !['read', 'reading', 'want'].includes(status)) {
     return NextResponse.json({ error: 'status must be read, reading, or want' }, { status: 400 })
   }
-
-  // Check book exists
-  const [book] = await db.select().from(books).where(eq(books.id, bookId)).limit(1)
-  if (!book) {
-    return NextResponse.json({ error: 'Book not found' }, { status: 404 })
+  if (review && review.length > 5000) {
+    return NextResponse.json({ error: 'review must be 5000 characters or less' }, { status: 400 })
+  }
+  if (notes && notes.length > 5000) {
+    return NextResponse.json({ error: 'notes must be 5000 characters or less' }, { status: 400 })
+  }
+  if (pagesRead !== undefined && (!Number.isInteger(pagesRead) || pagesRead < 0)) {
+    return NextResponse.json({ error: 'pagesRead must be a non-negative integer' }, { status: 400 })
+  }
+  if (readAt != null && (!/^\d{4}-\d{2}-\d{2}$/.test(readAt) || isNaN(Date.parse(readAt)))) {
+    return NextResponse.json({ error: 'readAt must be a valid YYYY-MM-DD date' }, { status: 400 })
   }
 
-  // Upsert: check if user already logged this book
-  const [existing] = await db
-    .select()
-    .from(userBooks)
-    .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, bookId)))
-    .limit(1)
-
-  if (existing) {
-    const [updated] = await db
-      .update(userBooks)
-      .set({
-        status: status ?? existing.status,
-        rating: rating ?? existing.rating,
-        review: review !== undefined ? review : existing.review,
-        liked: liked !== undefined ? liked : existing.liked,
-        updatedAt: new Date(),
+  try {
+    const [result] = await db
+      .insert(userBooks)
+      .values({
+        userId: session.user.id,
+        bookId,
+        status: status ?? 'read',
+        rating: rating ?? null,
+        review: review ?? null,
+        notes: notes ?? null,
+        liked: liked ?? false,
+        spoiler: spoiler ?? false,
+        pagesRead: pagesRead ?? null,
+        readAt: readAt ?? null,
       })
-      .where(eq(userBooks.id, existing.id))
+      .onConflictDoUpdate({
+        target: [userBooks.userId, userBooks.bookId],
+        set: {
+          status: status != null ? status : sql`user_books.status`,
+          rating: rating !== undefined ? (rating ?? sql`user_books.rating`) : sql`user_books.rating`,
+          review: review !== undefined ? (review ?? sql`user_books.review`) : sql`user_books.review`,
+          notes: notes !== undefined ? (notes ?? sql`user_books.notes`) : sql`user_books.notes`,
+          liked: liked !== undefined ? liked : sql`user_books.liked`,
+          spoiler: spoiler !== undefined ? (spoiler ?? false) : sql`user_books.spoiler`,
+          pagesRead: pagesRead !== undefined ? (pagesRead ?? sql`user_books.pages_read`) : sql`user_books.pages_read`,
+          readAt: readAt !== undefined ? (readAt ?? sql`user_books.read_at`) : sql`user_books.read_at`,
+          updatedAt: new Date(),
+        },
+      })
       .returning()
-    return NextResponse.json(updated)
+
+    const isNew = result.createdAt?.getTime() === result.updatedAt?.getTime()
+    if (review && isNew) {
+      try {
+        await insertReviewNotifications(session.user.id, bookId)
+      } catch (err) {
+        console.error('[notifications] review insert failed:', err)
+      }
+    }
+
+    return NextResponse.json(result)
+  } catch (err: any) {
+    if (err?.code === '23503') {
+      return NextResponse.json({ error: 'Book not found' }, { status: 404 })
+    }
+    throw err
   }
-
-  const [created] = await db
-    .insert(userBooks)
-    .values({
-      userId: session.user.id,
-      bookId,
-      status: status ?? 'read',
-      rating: rating ?? null,
-      review: review ?? null,
-      liked: liked ?? false,
-    })
-    .returning()
-
-  return NextResponse.json(created, { status: 201 })
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const statusFilter = req.nextUrl.searchParams.get('status')
+  const conditions = [eq(userBooks.userId, session.user.id)]
+  if (statusFilter && ['read', 'reading', 'want'].includes(statusFilter)) {
+    conditions.push(eq(userBooks.status, statusFilter))
+  }
+
   const rows = await db
     .select()
     .from(userBooks)
-    .where(eq(userBooks.userId, session.user.id))
+    .where(and(...conditions))
     .innerJoin(books, eq(userBooks.bookId, books.id))
 
   const result = rows.map(r => ({
@@ -84,4 +108,111 @@ export async function GET() {
   }))
 
   return NextResponse.json(result)
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { bookId, pagesRead } = await req.json()
+
+  if (!bookId) {
+    return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+  }
+  if (!Number.isInteger(pagesRead) || pagesRead < 0) {
+    return NextResponse.json({ error: 'pagesRead must be a non-negative integer' }, { status: 400 })
+  }
+
+  const [existing] = await db
+    .select()
+    .from(userBooks)
+    .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, bookId)))
+    .limit(1)
+
+  if (!existing) {
+    return NextResponse.json({ error: 'Book not in library' }, { status: 404 })
+  }
+
+  const [updated] = await db
+    .update(userBooks)
+    .set({ pagesRead, updatedAt: new Date() })
+    .where(eq(userBooks.id, existing.id))
+    .returning()
+
+  return NextResponse.json(updated)
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { bookId } = await req.json()
+
+  if (!bookId) {
+    return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+  }
+
+  const [existing] = await db
+    .select()
+    .from(userBooks)
+    .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, bookId)))
+    .limit(1)
+
+  if (!existing) {
+    return NextResponse.json({ error: 'Book not in library' }, { status: 404 })
+  }
+
+  await db.batch([
+    db.delete(favoriteBooks)
+      .where(and(eq(favoriteBooks.userId, session.user.id), eq(favoriteBooks.bookId, bookId))),
+    db.delete(userBooks)
+      .where(eq(userBooks.id, existing.id)),
+  ])
+
+  return NextResponse.json({ deleted: true })
+}
+
+async function insertReviewNotifications(actorId: string, bookId: string) {
+  const [actor] = await db
+    .select({ name: users.name, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.id, actorId))
+    .limit(1)
+
+  const [book] = await db
+    .select({ title: books.title, googleId: books.googleId })
+    .from(books)
+    .where(eq(books.id, bookId))
+    .limit(1)
+
+  if (!book) return
+
+  const readers = await db
+    .select({ userId: userBooks.userId })
+    .from(userBooks)
+    .where(and(
+      eq(userBooks.bookId, bookId),
+      eq(userBooks.status, 'read'),
+      ne(userBooks.userId, actorId),
+    ))
+    .limit(20)
+
+  if (readers.length === 0) return
+
+  await db.insert(notifications).values(
+    readers.map(r => ({
+      userId: r.userId,
+      type: 'review' as const,
+      actorId,
+      actorName: actor?.name ?? null,
+      actorAvatar: actor?.avatarUrl ?? null,
+      bookId,
+      bookTitle: book.title,
+      bookGoogleId: book.googleId,
+    }))
+  )
 }

@@ -44,6 +44,8 @@ body {
 }
 .nav-links a:hover { color: #fff; }
 .nav-links .hl a { color: var(--copper-light); }
+.mobile-menu-btn { display: none; }
+.nav-links-desktop { display: flex; }
 
 /* Hero */
 .hero {
@@ -78,6 +80,7 @@ body {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 .hero-headline {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 700; font-size: clamp(36px, 5vw, 66px);
@@ -169,3 +172,45 @@ footer {
 .footer-links a { color: #456; text-decoration: none; font-size: 11px; transition: color 0.15s; }
 .footer-links a:hover { color: #789; }
 .footer-copy { font-size: 11px; color: #456; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .nav { padding: 0 12px; }
+  .mobile-menu-btn { display: flex; }
+  .nav-links-desktop { display: none; }
+  .nav-desktop-only { display: none !important; }
+
+  .hero { min-height: 520px; }
+  .hero-body { padding: 0 20px 40px; }
+  .hero-headline { font-size: 28px; margin-bottom: 24px; }
+  .hero-cta { font-size: 14px; padding: 12px 28px; }
+  .hero-tagline { font-size: 11px; flex-wrap: wrap; justify-content: center; }
+  .hero-credit { display: none; }
+
+  .section { padding: 32px 0 36px; }
+  .section-label { padding: 0 16px 14px; }
+  .poster-row { padding: 0 16px; gap: 6px; }
+  .card { width: 120px; height: 180px; }
+
+  .features { padding: 32px 16px; }
+  .feat-grid { grid-template-columns: 1fr; }
+  .feat { padding: 16px; }
+
+  footer { padding: 20px 16px; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .footer-l { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .footer-links { flex-wrap: wrap; gap: 10px; }
+
+  /* Book detail responsive */
+  .book-detail-grid { grid-template-columns: 1fr !important; }
+
+  /* Stats responsive */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  .page-content { padding: 24px 16px 60px !important; }
+  .profile-header { flex-direction: column !important; text-align: center !important; }
+  .book-hero-inner { flex-direction: column !important; align-items: center !important; text-align: center !important; padding: 24px 16px 0 !important; gap: 20px !important; }
+  .log-actions { flex-wrap: wrap !important; }
+  .currently-reading { padding: 16px !important; }
+  .list-card { padding: 14px !important; }
+  .back-to-top { bottom: 16px !important; right: 16px !important; width: 36px !important; height: 36px !important; }
+}

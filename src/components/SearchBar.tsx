@@ -24,9 +24,12 @@ export function SearchBar() {
     timer.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        if (!res.ok) throw new Error('Search failed')
         const data = await res.json()
         setResults(data)
         setOpen(true)
+      } catch {
+        setResults([])
       } finally {
         setLoading(false)
       }
@@ -45,7 +48,7 @@ export function SearchBar() {
   }, [])
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', marginLeft: 14 }}>
+    <div ref={wrapRef} className="nav-search" style={{ position: 'relative', marginLeft: 14 }}>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <svg style={{ position: 'absolute', left: 9, width: 13, height: 13, color: '#556', pointerEvents: 'none' }}
           viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -127,7 +130,6 @@ export function SearchBar() {
         </div>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

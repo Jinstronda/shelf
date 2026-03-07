@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, text, integer,
-  timestamp, date, boolean
+  timestamp, date, boolean, uniqueIndex, index
 } from 'drizzle-orm/pg-core'
 
 export const books = pgTable('books', {
@@ -30,11 +30,18 @@ export const userBooks = pgTable('user_books', {
   status:    text('status').notNull().default('read'), // 'read' | 'reading' | 'want'
   rating:    integer('rating'),   // 1-10 (maps to 0.5-5 stars)
   review:    text('review'),
+  notes:     text('notes'),
   readAt:    date('read_at'),
   liked:     boolean('liked').default(false),
+  spoiler:   boolean('spoiler').default(false),
+  pagesRead: integer('pages_read'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-})
+}, (t) => ({
+  uniqueUserBook: uniqueIndex('user_books_unique').on(t.userId, t.bookId),
+  bookIdx: index('user_books_book_id_idx').on(t.bookId),
+  userIdx: index('user_books_user_id_idx').on(t.userId),
+}))
 
 export const users = pgTable('users', {
   id:        text('id').primaryKey(),  // from auth provider
@@ -63,11 +70,84 @@ export const listItems = pgTable('list_items', {
   position:  integer('position').notNull().default(0),
   note:      text('note'),
   createdAt: timestamp('created_at').defaultNow(),
-})
+}, (t) => ({
+  listIdx: index('list_items_list_id_idx').on(t.listId),
+}))
 
-export type Book       = typeof books.$inferSelect
-export type NewBook    = typeof books.$inferInsert
-export type UserBook   = typeof userBooks.$inferSelect
-export type NewUserBook = typeof userBooks.$inferInsert
-export type List       = typeof lists.$inferSelect
-export type ListItem   = typeof listItems.$inferSelect
+export const follows = pgTable('follows', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  followerId: text('follower_id').notNull(),
+  followingId: text('following_id').notNull(),
+  createdAt:  timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniqueFollow: uniqueIndex('follows_unique').on(t.followerId, t.followingId),
+  followingIdx: index('follows_following_id_idx').on(t.followingId),
+}))
+
+export const readingGoals = pgTable('reading_goals', {
+  id:     uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  year:   integer('year').notNull(),
+  target: integer('target').notNull(),
+}, (t) => ({
+  uniqueGoal: uniqueIndex('goals_unique').on(t.userId, t.year),
+}))
+
+export const favoriteBooks = pgTable('favorite_books', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    text('user_id').notNull(),
+  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  position:  integer('position').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniqueFav: uniqueIndex('favorite_books_unique').on(t.userId, t.bookId),
+  userIdx: index('favorite_books_user_idx').on(t.userId),
+}))
+
+export const notifications = pgTable('notifications', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  userId:       text('user_id').notNull(),
+  type:         text('type').notNull(),
+  actorId:      text('actor_id').notNull(),
+  actorName:    text('actor_name'),
+  actorAvatar:  text('actor_avatar'),
+  bookId:       uuid('book_id'),
+  bookTitle:    text('book_title'),
+  bookGoogleId: text('book_google_id'),
+  read:         boolean('read').default(false),
+  createdAt:    timestamp('created_at').defaultNow(),
+}, (t) => ({
+  userIdx: index('notifications_user_idx').on(t.userId),
+}))
+
+export const reviewLikes = pgTable('review_likes', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    text('user_id').notNull(),
+  reviewId:  uuid('review_id').notNull().references(() => userBooks.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  uniqueLike: uniqueIndex('review_likes_unique').on(t.userId, t.reviewId),
+  reviewIdx: index('review_likes_review_idx').on(t.reviewId),
+}))
+
+export const reviewComments = pgTable('review_comments', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  reviewId:  uuid('review_id').notNull().references(() => userBooks.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull(),
+  text:      text('text').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  reviewIdx: index('review_comments_review_idx').on(t.reviewId),
+}))
+
+export type Book         = typeof books.$inferSelect
+export type NewBook      = typeof books.$inferInsert
+export type UserBook     = typeof userBooks.$inferSelect
+export type NewUserBook  = typeof userBooks.$inferInsert
+export type List         = typeof lists.$inferSelect
+export type ListItem     = typeof listItems.$inferSelect
+export type Follow       = typeof follows.$inferSelect
+export type FavoriteBook = typeof favoriteBooks.$inferSelect
+export type Notification = typeof notifications.$inferSelect
+export type ReviewLike    = typeof reviewLikes.$inferSelect
+export type ReviewComment = typeof reviewComments.$inferSelect

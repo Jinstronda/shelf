@@ -14,6 +14,12 @@ export async function POST(req: NextRequest) {
   if (!name?.trim()) {
     return NextResponse.json({ error: 'name required' }, { status: 400 })
   }
+  if (name.trim().length > 200) {
+    return NextResponse.json({ error: 'name must be 200 characters or less' }, { status: 400 })
+  }
+  if (description && description.trim().length > 1000) {
+    return NextResponse.json({ error: 'description must be 1000 characters or less' }, { status: 400 })
+  }
 
   const [list] = await db
     .insert(lists)

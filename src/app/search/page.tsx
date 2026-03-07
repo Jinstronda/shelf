@@ -1,49 +1,49 @@
 import { searchGoogleBooks } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
-import { NavScroll } from '@/components/NavScroll'
-import { SearchBar } from '@/components/SearchBar'
+import { SiteNav } from '@/components/SiteNav'
+import { SiteFooter } from '@/components/SiteFooter'
 import { BookCard } from '@/components/BookCard'
-import { AuthNav } from '@/components/AuthNav'
-import { LogoSVG } from '@/components/Logo'
+import { WantToReadButton } from '@/components/WantToReadButton'
 import type { Metadata } from 'next'
 
+const GENRES = ['Fiction', 'Nonfiction', 'Science Fiction', 'Fantasy', 'Mystery', 'Romance', 'Biography', 'History', 'Science', 'Philosophy', 'Poetry', 'Horror']
+
 interface Props {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; genre?: string }>
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { q } = await searchParams
-  return { title: q ? `"${q}" — Shelf` : 'Search — Shelf' }
+  const { q, genre } = await searchParams
+  if (q && genre) return { title: `"${q}" in ${genre} — Shelf` }
+  if (genre) return { title: `${genre} Books — Shelf` }
+  if (q) return { title: `"${q}" — Shelf` }
+  return { title: 'Search — Shelf' }
 }
 
 export default async function SearchPage({ searchParams }: Props) {
-  const { q } = await searchParams
+  const { q, genre } = await searchParams
   const query = q?.trim() ?? ''
 
-  let results = query
-    ? await searchGoogleBooks(query, 20).catch(() => searchOpenLibrary(query, 20))
+  const subjectTag = genre
+    ? (genre.includes(' ') ? `subject:"${genre}"` : `subject:${genre}`)
+    : ''
+  const searchQuery = query && genre
+    ? `${query}+${subjectTag}`
+    : genre
+      ? subjectTag
+      : query
+
+  let results = searchQuery
+    ? await searchGoogleBooks(searchQuery, 20).catch(() => searchOpenLibrary(searchQuery, 20))
     : []
 
-  // fallback to Open Library if Google Books returns nothing
-  if (results.length === 0 && query) {
-    results = await searchOpenLibrary(query, 20)
+  if (results.length === 0 && searchQuery) {
+    results = await searchOpenLibrary(searchQuery, 20)
   }
 
   return (
     <>
-      <NavScroll>
-        <a className="nav-logo" href="/">
-          <LogoSVG />
-          <span className="nav-logo-text">Shelf</span>
-        </a>
-        <ul className="nav-links">
-          <AuthNav />
-          <li><a href="/books">Books</a></li>
-          <li><a href="/lists">Lists</a></li>
-          <li><a href="/members">Members</a></li>
-        </ul>
-        <SearchBar />
-      </NavScroll>
+      <SiteNav />
 
       <div style={{ paddingTop: 80, minHeight: '100vh' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
@@ -58,6 +58,23 @@ export default async function SearchPage({ searchParams }: Props) {
                 <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, fontWeight: 700, color: '#fff' }}>
                   &ldquo;{query}&rdquo;
                 </h1>
+                {genre && (
+                  <div style={{ fontSize: 14, color: '#789', marginTop: 4 }}>
+                    in {genre}
+                  </div>
+                )}
+                <div style={{ fontSize: 13, color: '#567', marginTop: 6 }}>
+                  {results.length} {results.length === 1 ? 'result' : 'results'}
+                </div>
+              </>
+            ) : genre ? (
+              <>
+                <div style={{ fontSize: 11, color: '#567', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Browse
+                </div>
+                <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, fontWeight: 700, color: '#fff' }}>
+                  {genre}
+                </h1>
                 <div style={{ fontSize: 13, color: '#567', marginTop: 6 }}>
                   {results.length} {results.length === 1 ? 'result' : 'results'}
                 </div>
@@ -70,7 +87,8 @@ export default async function SearchPage({ searchParams }: Props) {
           </div>
 
           {/* Search form */}
-          <form method="GET" action="/search" style={{ marginBottom: 48 }}>
+          <form method="GET" action="/search" style={{ marginBottom: 32 }}>
+            {genre && <input type="hidden" name="genre" value={genre} />}
             <div style={{ display: 'flex', gap: 12, maxWidth: 600 }}>
               <input
                 name="q"
@@ -92,6 +110,33 @@ export default async function SearchPage({ searchParams }: Props) {
             </div>
           </form>
 
+          {/* Genre pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
+            {GENRES.map(g => (
+              <a
+                key={g}
+                href={`/search?${new URLSearchParams({ ...(query ? { q: query } : {}), genre: g }).toString()}`}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none',
+                  background: genre === g ? 'rgba(196,96,58,0.2)' : 'rgba(255,255,255,0.05)',
+                  color: genre === g ? '#C4603A' : '#789',
+                  border: `1px solid ${genre === g ? 'rgba(196,96,58,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                }}
+              >{g}</a>
+            ))}
+            {genre && (
+              <a
+                href={query ? `/search?q=${encodeURIComponent(query)}` : '/search'}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none', color: '#567',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >Clear filter</a>
+            )}
+          </div>
+
           {/* Results grid */}
           {results.length > 0 ? (
             <div style={{
@@ -101,13 +146,16 @@ export default async function SearchPage({ searchParams }: Props) {
             }}>
               {results.map((book, i) => (
                 <div key={book.googleId + i}>
-                  <BookCard
-                    isbn={book.isbn13 ?? book.isbn10 ?? ''}
-                    title={book.title}
-                    author={book.authors[0] ?? ''}
-                    rating=""
-                    cv={['cv1','cv2','cv3','cv4','cv5','cv6','cv7','cv8','cv9','cva','cvb','cvc'][i % 12]}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <BookCard
+                      isbn={book.isbn13 ?? book.isbn10 ?? ''}
+                      title={book.title}
+                      author={book.authors[0] ?? ''}
+                      rating=""
+                      cv={['cv1','cv2','cv3','cv4','cv5','cv6','cv7','cv8','cv9','cva','cvb','cvc'][i % 12]}
+                    />
+                    <WantToReadButton googleId={book.googleId} />
+                  </div>
                   <div style={{ marginTop: 8 }}>
                     <a href={`/book/${book.googleId}`} style={{ textDecoration: 'none' }}>
                       <div style={{
@@ -124,13 +172,15 @@ export default async function SearchPage({ searchParams }: Props) {
                 </div>
               ))}
             </div>
-          ) : query ? (
+          ) : searchQuery ? (
             <div style={{ color: '#567', fontSize: 15, textAlign: 'center', paddingTop: 60 }}>
-              No results for &ldquo;{query}&rdquo;. Try a different title or author.
+              No results{query ? <> for &ldquo;{query}&rdquo;</> : null}{genre ? <> in {genre}</> : null}. Try a different title or author.
             </div>
           ) : null}
         </div>
       </div>
+
+      <SiteFooter />
     </>
   )
 }

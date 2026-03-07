@@ -1,15 +1,37 @@
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { lists, listItems, books } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
-import { NavScroll } from '@/components/NavScroll'
-import { SearchBar } from '@/components/SearchBar'
-import { AuthNav } from '@/components/AuthNav'
-import { LogoSVG } from '@/components/Logo'
+import { lists, listItems, books, users } from '@/lib/schema'
+import { eq, desc, and, ne, inArray } from 'drizzle-orm'
+import { SiteNav } from '@/components/SiteNav'
+import { SiteFooter } from '@/components/SiteFooter'
 import { ListsClient } from '@/components/ListsClient'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Your Lists — Shelf' }
+
+async function enrichListsWithCovers<T extends { id: string }>(rawLists: T[]) {
+  const listIds = rawLists.map(l => l.id)
+  if (listIds.length === 0) return rawLists.map(l => ({ ...l, itemCount: 0, covers: [] as (string | null)[] }))
+
+  const allItems = await db
+    .select({
+      listId: listItems.listId,
+      coverUrl: books.coverUrl,
+    })
+    .from(listItems)
+    .innerJoin(books, eq(listItems.bookId, books.id))
+    .where(inArray(listItems.listId, listIds))
+    .orderBy(listItems.position)
+
+  return rawLists.map(list => {
+    const items = allItems.filter(i => i.listId === list.id)
+    return {
+      ...list,
+      itemCount: items.length,
+      covers: items.slice(0, 4).map(i => i.coverUrl),
+    }
+  })
+}
 
 async function getUserLists(userId: string) {
   const userLists = await db
@@ -18,45 +40,50 @@ async function getUserLists(userId: string) {
     .where(eq(lists.userId, userId))
     .orderBy(desc(lists.updatedAt))
 
-  return Promise.all(
-    userLists.map(async list => {
-      const items = await db
-        .select({ coverUrl: books.coverUrl })
-        .from(listItems)
-        .innerJoin(books, eq(listItems.bookId, books.id))
-        .where(eq(listItems.listId, list.id))
-        .orderBy(listItems.position)
+  return enrichListsWithCovers(userLists)
+}
 
-      return { ...list, itemCount: items.length, covers: items.slice(0, 4).map(i => i.coverUrl) }
+async function getPublicLists(excludeUserId?: string) {
+  const publicLists = await db
+    .select({
+      id: lists.id,
+      name: lists.name,
+      description: lists.description,
+      creatorName: users.name,
     })
-  )
+    .from(lists)
+    .innerJoin(users, eq(lists.userId, users.id))
+    .where(
+      excludeUserId
+        ? and(eq(lists.isPublic, true), ne(lists.userId, excludeUserId))
+        : eq(lists.isPublic, true)
+    )
+
+  const enriched = await enrichListsWithCovers(publicLists)
+  return enriched
+    .sort((a, b) => b.itemCount - a.itemCount)
+    .slice(0, 12)
 }
 
 export default async function ListsPage() {
   const session = await auth()
-  const userListsData = session?.user?.id ? await getUserLists(session.user.id) : []
+  const userId = session?.user?.id
+  const [userListsData, publicListsData] = await Promise.all([
+    userId ? getUserLists(userId) : [],
+    getPublicLists(userId),
+  ])
 
   return (
     <>
-      <NavScroll>
-        <a className="nav-logo" href="/">
-          <LogoSVG />
-          <span className="nav-logo-text">Shelf</span>
-        </a>
-        <ul className="nav-links">
-          <AuthNav />
-          <li><a href="/books">Books</a></li>
-          <li><a href="/lists">Lists</a></li>
-          <li><a href="/members">Members</a></li>
-        </ul>
-        <SearchBar />
-      </NavScroll>
+      <SiteNav />
 
       <div style={{ paddingTop: 80, minHeight: '100vh' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 40px 80px' }}>
-          <ListsClient initialLists={userListsData} isSignedIn={!!session?.user} />
+        <div className="page-content" style={{ maxWidth: 900, margin: '0 auto', padding: '40px 40px 80px' }}>
+          <ListsClient initialLists={userListsData} isSignedIn={!!session?.user} publicLists={publicListsData} />
         </div>
       </div>
+
+      <SiteFooter />
     </>
   )
 }

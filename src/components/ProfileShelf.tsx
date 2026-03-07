@@ -1,10 +1,6 @@
 'use client'
 import type { UserBook, Book } from '@/lib/schema'
-
-const RATINGS: Record<number, string> = {
-  10: '★★★★★', 9: '★★★★½', 8: '★★★★', 7: '★★★½',
-  6: '★★★', 5: '★★½', 4: '★★', 3: '★½', 2: '★', 1: '½',
-}
+import { RATING_MAP } from '@/lib/constants'
 
 interface Props {
   title: string
@@ -43,7 +39,7 @@ export function ProfileShelf({ title, items }: Props) {
               )}
               <div className="card-hover">
                 {item.rating && (
-                  <span className="card-rating">{RATINGS[item.rating] ?? ''}</span>
+                  <span className="card-rating">{RATING_MAP[item.rating] ?? ''}</span>
                 )}
               </div>
             </div>

@@ -9,7 +9,46 @@ interface ListData {
   covers: (string | null)[]
 }
 
-export function ListsClient({ initialLists, isSignedIn }: { initialLists: ListData[], isSignedIn: boolean }) {
+interface PublicListData extends ListData {
+  creatorName: string | null
+}
+
+function ListCard({ list, creatorName }: { list: ListData, creatorName?: string | null }) {
+  return (
+    <a href={`/lists/${list.id}`} className="list-card" style={{
+      textDecoration: 'none', display: 'flex', gap: 16,
+      background: '#1c2028', borderRadius: 6, padding: 20,
+      transition: 'background 0.15s', cursor: 'pointer',
+      alignItems: 'center',
+    }}>
+      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+        {list.covers.slice(0, 4).map((cover, i) => (
+          <div key={i} style={{
+            width: 36, height: 54, borderRadius: 2, overflow: 'hidden',
+            background: '#2a2e36',
+          }}>
+            {cover && <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+          </div>
+        ))}
+        {list.covers.length === 0 && (
+          <div style={{ width: 36, height: 54, borderRadius: 2, background: '#2a2e36' }} />
+        )}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#ccc', marginBottom: 4 }}>{list.name}</div>
+        {list.description && (
+          <div style={{ fontSize: 12, color: '#567', marginBottom: 4 }}>{list.description}</div>
+        )}
+        <div style={{ fontSize: 11, color: '#456' }}>
+          {list.itemCount} {list.itemCount === 1 ? 'book' : 'books'}
+          {creatorName && <> &middot; {creatorName}</>}
+        </div>
+      </div>
+    </a>
+  )
+}
+
+export function ListsClient({ initialLists, isSignedIn, publicLists }: { initialLists: ListData[], isSignedIn: boolean, publicLists: PublicListData[] }) {
   const [userLists, setLists] = useState(initialLists)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -94,35 +133,7 @@ export function ListsClient({ initialLists, isSignedIn }: { initialLists: ListDa
       {userLists.length > 0 ? (
         <div style={{ display: 'grid', gap: 12 }}>
           {userLists.map(list => (
-            <a key={list.id} href={`/lists/${list.id}`} style={{
-              textDecoration: 'none', display: 'flex', gap: 16,
-              background: '#1c2028', borderRadius: 6, padding: 20,
-              transition: 'background 0.15s', cursor: 'pointer',
-              alignItems: 'center',
-            }}>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                {list.covers.slice(0, 4).map((cover, i) => (
-                  <div key={i} style={{
-                    width: 36, height: 54, borderRadius: 2, overflow: 'hidden',
-                    background: '#2a2e36',
-                  }}>
-                    {cover && <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  </div>
-                ))}
-                {list.covers.length === 0 && (
-                  <div style={{ width: 36, height: 54, borderRadius: 2, background: '#2a2e36' }} />
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#ccc', marginBottom: 4 }}>{list.name}</div>
-                {list.description && (
-                  <div style={{ fontSize: 12, color: '#567', marginBottom: 4 }}>{list.description}</div>
-                )}
-                <div style={{ fontSize: 11, color: '#456' }}>
-                  {list.itemCount} {list.itemCount === 1 ? 'book' : 'books'}
-                </div>
-              </div>
-            </a>
+            <ListCard key={list.id} list={list} />
           ))}
         </div>
       ) : (
@@ -130,6 +141,22 @@ export function ListsClient({ initialLists, isSignedIn }: { initialLists: ListDa
           {isSignedIn
             ? 'No lists yet. Create your first one.'
             : 'Sign in to create and manage lists.'}
+        </div>
+      )}
+
+      {publicLists.length > 0 && (
+        <div style={{ marginTop: 48 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+            color: '#567', textTransform: 'uppercase' as const, marginBottom: 16,
+          }}>
+            Community Lists
+          </div>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {publicLists.map(list => (
+              <ListCard key={list.id} list={list} creatorName={list.creatorName} />
+            ))}
+          </div>
         </div>
       )}
     </>
