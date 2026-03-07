@@ -1,6 +1,6 @@
 import { db } from './db'
 import { favoriteBooks, books, userBooks } from './schema'
-import { eq, asc, and, gte } from 'drizzle-orm'
+import { eq, asc, and } from 'drizzle-orm'
 
 export async function getFavorites(userId: string) {
   return db
@@ -16,71 +16,67 @@ export async function getFavorites(userId: string) {
     .orderBy(asc(favoriteBooks.position))
 }
 
-function getISOWeekKey(d: Date): string {
-  const date = new Date(d.getTime())
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7))
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
-  const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
-  return `${date.getUTCFullYear()}-${String(week).padStart(2, '0')}`
+function toDateKey(d: Date | string): string {
+  if (typeof d === 'string') return d.slice(0, 10)
+  return d.toISOString().slice(0, 10)
 }
 
-function weekKeyToDate(key: string): Date {
-  const [year, week] = key.split('-').map(Number)
-  const jan4 = new Date(Date.UTC(year, 0, 4))
-  const dayOfWeek = jan4.getUTCDay() || 7
-  const monday = new Date(jan4.getTime() + (1 - dayOfWeek) * 86400000)
-  return new Date(monday.getTime() + (week - 1) * 7 * 86400000)
+function daysBetween(a: string, b: string): number {
+  const da = new Date(a + 'T00:00:00Z')
+  const db = new Date(b + 'T00:00:00Z')
+  return Math.round((da.getTime() - db.getTime()) / 86400000)
 }
 
-function countStreaks(weekKeys: string[]) {
-  if (weekKeys.length === 0) return { currentStreak: 0, longestStreak: 0 }
+function computeStreaks(dateKeys: string[]) {
+  const unique = [...new Set(dateKeys)].sort()
+  if (unique.length === 0) {
+    return { currentStreak: 0, longestStreak: 0, readingDaysThisYear: 0, last30: [] as string[] }
+  }
 
-  const now = new Date()
-  const currentWeek = getISOWeekKey(now)
-  const unique = [...new Set(weekKeys)].sort().reverse()
+  const today = toDateKey(new Date())
+  const yesterday = toDateKey(new Date(Date.now() - 86400000))
+  const year = new Date().getFullYear()
+  const thirtyAgo = toDateKey(new Date(Date.now() - 29 * 86400000))
 
-  let longestStreak = 0
+  const readingDaysThisYear = unique.filter(d => d.startsWith(String(year))).length
+  const last30 = unique.filter(d => d >= thirtyAgo && d <= today)
+
+  let longestStreak = 1
   let run = 1
-
   for (let i = 1; i < unique.length; i++) {
-    const prev = weekKeyToDate(unique[i - 1])
-    const curr = weekKeyToDate(unique[i])
-    const diffWeeks = Math.round((prev.getTime() - curr.getTime()) / (7 * 86400000))
-    if (diffWeeks === 1) {
+    if (daysBetween(unique[i], unique[i - 1]) === 1) {
       run++
-    } else {
       longestStreak = Math.max(longestStreak, run)
+    } else {
       run = 1
     }
   }
-  longestStreak = Math.max(longestStreak, run)
 
   let currentStreak = 0
-  const lastWeek = getISOWeekKey(new Date(Date.now() - 7 * 86400000))
-  if (unique[0] === currentWeek || unique[0] === lastWeek) {
+  const last = unique[unique.length - 1]
+  if (last === today || last === yesterday) {
     currentStreak = 1
-    for (let i = 1; i < unique.length; i++) {
-      const prev = weekKeyToDate(unique[i - 1])
-      const curr = weekKeyToDate(unique[i])
-      const diffWeeks = Math.round((prev.getTime() - curr.getTime()) / (7 * 86400000))
-      if (diffWeeks === 1) currentStreak++
+    for (let i = unique.length - 2; i >= 0; i--) {
+      if (daysBetween(unique[i + 1], unique[i]) === 1) currentStreak++
       else break
     }
   }
 
-  return { currentStreak, longestStreak }
+  return { currentStreak, longestStreak, readingDaysThisYear, last30 }
 }
 
 export async function getReadingStreak(userId: string) {
-  const twoYearsAgo = new Date(Date.now() - 2 * 365 * 86400000)
   const rows = await db
-    .select({ updatedAt: userBooks.updatedAt })
+    .select({ readAt: userBooks.readAt })
     .from(userBooks)
-    .where(and(eq(userBooks.userId, userId), gte(userBooks.updatedAt, twoYearsAgo)))
+    .where(and(
+      eq(userBooks.userId, userId),
+      eq(userBooks.status, 'read'),
+    ))
 
-  const weekKeys = rows
-    .filter(r => r.updatedAt != null)
-    .map(r => getISOWeekKey(r.updatedAt!))
+  const dateKeys = rows
+    .filter(r => r.readAt != null)
+    .map(r => toDateKey(r.readAt!))
 
-  return countStreaks(weekKeys)
+  return computeStreaks(dateKeys)
 }

@@ -35,6 +35,7 @@ export const userBooks = pgTable('user_books', {
   liked:     boolean('liked').default(false),
   spoiler:   boolean('spoiler').default(false),
   dnfReason: text('dnf_reason'),
+  format:    text('format'),
   pagesRead: integer('pages_read'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

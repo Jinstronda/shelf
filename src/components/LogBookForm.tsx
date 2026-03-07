@@ -12,6 +12,7 @@ export interface UserLog {
   spoiler: boolean | null
   readAt: string | null
   dnfReason: string | null
+  format: string | null
 }
 
 interface Props {
@@ -27,6 +28,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
   const [notes, setNotes]     = useState(userLog?.notes ?? '')
   const [status, setStatus]   = useState<'read' | 'reading' | 'want' | 'dnf'>((userLog?.status as 'read' | 'reading' | 'want' | 'dnf') ?? 'read')
   const [dnfReason, setDnfReason] = useState(userLog?.dnfReason ?? '')
+  const [format, setFormat]   = useState<string | null>(userLog?.format ?? null)
   const [liked, setLiked]     = useState(userLog?.liked ?? false)
   const [spoiler, setSpoiler] = useState(userLog?.spoiler ?? false)
   const [readAt, setReadAt]   = useState<string | null>(userLog?.readAt ?? (userLog?.status === 'read' || !userLog ? new Date().toISOString().slice(0, 10) : null))
@@ -80,6 +82,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
           spoiler,
           readAt: status === 'read' ? readAt : null,
           dnfReason: status === 'dnf' ? (dnfReason || null) : null,
+          format,
         }),
       })
       if (!logRes.ok) throw new Error('Failed to save log')
@@ -174,6 +177,29 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
           />
         </div>
       )}
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: '#567', marginBottom: 8 }}>Format</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {([
+            { key: 'paperback', label: 'Paperback', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
+            { key: 'hardcover', label: 'Hardcover', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M4 4h2v14H4"/></svg> },
+            { key: 'ebook', label: 'Ebook', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="18" x2="15" y2="18"/></svg> },
+            { key: 'audiobook', label: 'Audiobook', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> },
+          ] as const).map(f => (
+            <button key={f.key} onClick={() => setFormat(format === f.key ? null : f.key)} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '8px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
+              background: format === f.key ? 'var(--copper)' : 'rgba(255,255,255,0.05)',
+              color: format === f.key ? '#fff' : '#789',
+              transition: 'all 0.15s', fontFamily: 'inherit',
+            }}>
+              {f.icon}
+              <span style={{ fontSize: 10 }}>{f.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#567', marginBottom: 8 }}>Rating</div>

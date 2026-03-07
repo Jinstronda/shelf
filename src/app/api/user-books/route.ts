@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt, dnfReason } = body
+  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt, dnfReason, format } = body
 
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
@@ -37,6 +37,9 @@ export async function POST(req: NextRequest) {
   if (readAt != null && (!/^\d{4}-\d{2}-\d{2}$/.test(readAt) || isNaN(Date.parse(readAt)))) {
     return NextResponse.json({ error: 'readAt must be a valid YYYY-MM-DD date' }, { status: 400 })
   }
+  if (format != null && !['paperback', 'hardcover', 'ebook', 'audiobook'].includes(format)) {
+    return NextResponse.json({ error: 'format must be paperback, hardcover, ebook, or audiobook' }, { status: 400 })
+  }
 
   try {
     const [result] = await db
@@ -53,6 +56,7 @@ export async function POST(req: NextRequest) {
         pagesRead: pagesRead ?? null,
         readAt: readAt ?? null,
         dnfReason: dnfReason ?? null,
+        format: format ?? null,
       })
       .onConflictDoUpdate({
         target: [userBooks.userId, userBooks.bookId],
@@ -66,6 +70,7 @@ export async function POST(req: NextRequest) {
           pagesRead: pagesRead !== undefined ? (pagesRead ?? sql`user_books.pages_read`) : sql`user_books.pages_read`,
           readAt: readAt !== undefined ? (readAt ?? sql`user_books.read_at`) : sql`user_books.read_at`,
           dnfReason: dnfReason !== undefined ? (dnfReason ?? sql`user_books.dnf_reason`) : sql`user_books.dnf_reason`,
+          format: format !== undefined ? (format ?? sql`user_books.format`) : sql`user_books.format`,
           updatedAt: new Date(),
         },
       })

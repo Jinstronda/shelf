@@ -12,6 +12,8 @@ import { ReadingStreak } from '@/components/ReadingStreak'
 import { ReadingCalendar } from '@/components/ReadingCalendar'
 import { ChallengesCard } from '@/components/ChallengesCard'
 import { GenreChart } from '@/components/GenreChart'
+import { FormatStats } from '@/components/FormatStats'
+import { StatsShareCard } from '@/components/StatsShareCard'
 import { RATING_MAP } from '@/lib/constants'
 import type { Metadata } from 'next'
 
@@ -26,7 +28,7 @@ export default async function StatsPage() {
 
   const oneYearAgo = new Date(Date.now() - 365 * 86400000)
 
-  const [rows, [allTimeCount], streak, calendarRows, genreRows] = await Promise.all([
+  const [rows, [allTimeCount], streak, calendarRows, genreRows, formatRows] = await Promise.all([
     db.select().from(userBooks)
       .where(and(
         eq(userBooks.userId, session.user.id!),
@@ -54,6 +56,12 @@ export default async function StatsPage() {
       WHERE ub.user_id = ${session.user.id!} AND ub.status = 'read'
       GROUP BY g ORDER BY count DESC LIMIT 15
     `),
+    db.execute(sql`
+      SELECT format, COUNT(*)::int AS count
+      FROM user_books
+      WHERE user_id = ${session.user.id!} AND status = 'read' AND format IS NOT NULL
+      GROUP BY format ORDER BY count DESC
+    `),
   ])
 
   const thisYear = rows.map(r => ({ ...r.user_books, book: r.books }))
@@ -72,6 +80,7 @@ export default async function StatsPage() {
     .limit(1)
 
   const genreData = genreRows.rows as { genre: string; count: number }[]
+  const formatData = formatRows.rows as { format: string; count: number }[]
 
   const calendarData: Record<string, number> = {}
   for (const r of calendarRows) {
@@ -120,9 +129,21 @@ export default async function StatsPage() {
           }}>
             {year} in Books
           </h1>
-          <div style={{ fontSize: 13, color: '#567', marginBottom: 40 }}>
+          <div style={{ fontSize: 13, color: '#567', marginBottom: 24 }}>
             {session.user.name}&apos;s reading year so far
           </div>
+
+          {thisYear.length > 0 && (
+            <div style={{ marginBottom: 40 }}>
+              <StatsShareCard
+                year={year}
+                booksRead={thisYear.length}
+                pagesRead={totalPages}
+                avgRating={avgRating}
+                topGenre={topGenres[0]?.[0] ?? null}
+              />
+            </div>
+          )}
 
           <ReadingGoal
             year={year}
@@ -133,6 +154,8 @@ export default async function StatsPage() {
           <ChallengesCard />
 
           <GenreChart data={genreData} />
+
+          <FormatStats data={formatData} />
 
           {thisYear.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
@@ -163,7 +186,12 @@ export default async function StatsPage() {
               </div>
 
               <div style={{ marginBottom: 40 }}>
-                <ReadingStreak currentStreak={streak.currentStreak} longestStreak={streak.longestStreak} />
+                <ReadingStreak
+                  currentStreak={streak.currentStreak}
+                  longestStreak={streak.longestStreak}
+                  readingDaysThisYear={streak.readingDaysThisYear}
+                  last30={streak.last30}
+                />
               </div>
 
               <ReadingCalendar data={calendarData} />

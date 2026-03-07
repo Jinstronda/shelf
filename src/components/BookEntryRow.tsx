@@ -54,8 +54,15 @@ export function BookEntryRow({ entry }: Props) {
           </div>
         )}
       </div>
-      <div style={{ fontSize: 11, color: '#456', flexShrink: 0, paddingTop: 2 }}>
-        {entry.updatedAt && new Date(entry.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+      <div style={{ flexShrink: 0, paddingTop: 2, textAlign: 'right' }}>
+        <div style={{ fontSize: 11, color: '#456' }}>
+          {entry.updatedAt && new Date(entry.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+        </div>
+        {entry.format && (
+          <div style={{ fontSize: 9, color: '#567', marginTop: 2, textTransform: 'capitalize' }}>
+            {entry.format}
+          </div>
+        )}
       </div>
     </a>
   )
