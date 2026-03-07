@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getGoogleBook } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
 import { db } from '@/lib/db'
-import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes, bookTags } from '@/lib/schema'
+import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes, bookTags, reReads } from '@/lib/schema'
 import { eq, and, desc, ne, sql, count } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { notFound } from 'next/navigation'
@@ -319,6 +319,20 @@ async function getUserTags(bookId: string | null, userId: string) {
   }
 }
 
+async function getUserReReads(bookId: string | null, userId: string) {
+  try {
+    if (!bookId) return []
+    return await db
+      .select()
+      .from(reReads)
+      .where(and(eq(reReads.bookId, bookId), eq(reReads.userId, userId)))
+      .orderBy(desc(reReads.readAt))
+  } catch (err) {
+    console.error('getUserReReads:', err)
+    return []
+  }
+}
+
 export default async function BookPage({ params }: Props) {
   const { id } = await params
   const [book, session] = await Promise.all([fetchBook(id), auth()])
@@ -333,7 +347,7 @@ export default async function BookPage({ params }: Props) {
 
   const primaryAuthor = book.authors[0] ?? null
 
-  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes, userTags, communityStats, { communityReviews, totalReviewCount }] = await Promise.all([
+  const [{ reviews, avgRating, totalLogs, ratingDistribution }, relatedBooks, userLog, authorBooks, userQuotes, userTags, communityStats, { communityReviews, totalReviewCount }, userReReads] = await Promise.all([
     getReviews(bookDbId),
     getRelatedBooks(bookDbId),
     session?.user?.id ? getUserLog(bookDbId, session.user.id) : null,
@@ -342,6 +356,7 @@ export default async function BookPage({ params }: Props) {
     session?.user?.id ? getUserTags(bookDbId, session.user.id) : [],
     getCommunityStats(bookDbId),
     getCommunityReviews(bookDbId, session?.user?.id ?? null),
+    session?.user?.id ? getUserReReads(bookDbId, session.user.id) : [],
   ])
   return (
     <BookDetailClient
@@ -359,6 +374,7 @@ export default async function BookPage({ params }: Props) {
       communityStats={communityStats}
       communityReviews={communityReviews}
       totalCommunityReviewCount={totalReviewCount}
+      userReReads={userReReads}
     />
   )
 }

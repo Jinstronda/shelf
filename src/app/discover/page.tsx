@@ -97,6 +97,52 @@ async function getRecentlyAdded(): Promise<DiscoverBook[]> {
   }
 }
 
+type PopularBook = {
+  googleId: string
+  title: string
+  authors: string[]
+  coverUrl: string | null
+  activityCount: number
+  avgRating: number | null
+  reviewCount: number
+  readerCount: number
+}
+
+async function getPopularThisWeek(): Promise<PopularBook[]> {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const rows = await db
+      .select({
+        ...BOOK_COLUMNS,
+        activityCount: count(userBooks.id),
+        avgRating: avg(userBooks.rating),
+        reviewCount: sql<number>`count(case when ${userBooks.review} is not null and ${userBooks.updatedAt} >= ${sevenDaysAgo} then 1 end)`,
+        readerCount: sql<number>`(select count(*) from user_books ub2 where ub2.book_id = ${books.id})`,
+      })
+      .from(userBooks)
+      .innerJoin(books, eq(userBooks.bookId, books.id))
+      .where(gte(userBooks.updatedAt, sevenDaysAgo))
+      .groupBy(...BOOK_GROUP_BY)
+      .orderBy(desc(count(userBooks.id)))
+      .limit(6)
+    return rows
+      .filter(r => r.googleId)
+      .map(r => ({
+        googleId: r.googleId!,
+        title: r.title,
+        authors: r.authors,
+        coverUrl: r.coverR2Key ? coverPublicUrl(r.coverR2Key) : r.coverUrl,
+        activityCount: Number(r.activityCount),
+        avgRating: r.avgRating ? Number(r.avgRating) : null,
+        reviewCount: Number(r.reviewCount),
+        readerCount: Number(r.readerCount),
+      }))
+  } catch (err) {
+    console.error('getPopularThisWeek:', err)
+    return []
+  }
+}
+
 type PopularReview = {
   id: string
   bookTitle: string
@@ -159,17 +205,18 @@ async function getPopularReviews(): Promise<PopularReview[]> {
 }
 
 export default async function DiscoverPage() {
-  const [trending, highestRated, recentlyAdded, popularReviews] = await Promise.all([
+  const [trending, highestRated, recentlyAdded, popularReviews, popularThisWeek] = await Promise.all([
     getTrendingBooks(),
     getHighestRated(),
     getRecentlyAdded(),
     getPopularReviews(),
+    getPopularThisWeek(),
   ])
 
-  const sections = [
-    { label: 'Trending This Week', books: trending },
-    { label: 'Highest Rated',      books: highestRated },
-    { label: 'Recently Added',     books: recentlyAdded },
+  const trendingSection = { label: 'Trending This Week', books: trending }
+  const remainingSections = [
+    { label: 'Highest Rated',  books: highestRated },
+    { label: 'Recently Added', books: recentlyAdded },
   ]
 
   return (
@@ -185,7 +232,125 @@ export default async function DiscoverPage() {
             Discover
           </h1>
 
-          {sections.map(section => section.books.length > 0 && (
+          {trendingSection.books.length > 0 && (
+            <div style={{ marginBottom: 48 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                color: '#567', textTransform: 'uppercase', marginBottom: 18,
+              }}>
+                {trendingSection.label}
+              </div>
+              <div style={{
+                display: 'flex', gap: 8, overflowX: 'auto',
+                scrollbarWidth: 'none', paddingBottom: 4,
+              }}>
+                {trendingSection.books.map((book, i) => (
+                  <a key={book.googleId} href={`/book/${book.googleId}`}
+                    style={{ textDecoration: 'none', flexShrink: 0, width: 80 }}>
+                    <div style={{ position: 'relative' }}>
+                      <div className={`card ${CV[i % 12]}`}>
+                        {book.coverUrl && (
+                          <img src={book.coverUrl} alt={book.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                        <div className="card-hover" />
+                      </div>
+                      <WantToReadButton googleId={book.googleId} />
+                    </div>
+                    <div style={{
+                      fontSize: 11, color: '#ccc', fontWeight: 600, lineHeight: 1.3,
+                      marginTop: 6, overflow: 'hidden',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}>
+                      {book.title}
+                    </div>
+                    {book.authors[0] && (
+                      <div style={{
+                        fontSize: 10, color: '#678', lineHeight: 1.3,
+                        marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {book.authors[0]}
+                      </div>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {popularThisWeek.length > 0 && (
+            <div style={{ marginBottom: 48 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                color: '#567', textTransform: 'uppercase', marginBottom: 18,
+              }}>
+                Popular This Week
+              </div>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+              }}>
+                {popularThisWeek.map((book, i) => (
+                  <div key={book.googleId} style={{
+                    background: 'rgba(255,255,255,0.02)', borderRadius: 6, padding: 16,
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex', gap: 12, alignItems: 'flex-start',
+                  }}>
+                    <div style={{
+                      fontFamily: 'Cormorant Garamond, serif', fontSize: 28,
+                      fontWeight: 700, color: '#C4603A', lineHeight: 1,
+                      minWidth: 24, textAlign: 'center',
+                    }}>
+                      {i + 1}
+                    </div>
+                    <a href={`/book/${book.googleId}`} style={{ flexShrink: 0 }}>
+                      {book.coverUrl ? (
+                        <img src={book.coverUrl} alt={book.title}
+                          style={{ width: 50, height: 75, objectFit: 'cover', borderRadius: 3 }} />
+                      ) : (
+                        <div style={{
+                          width: 50, height: 75, borderRadius: 3,
+                          background: '#2a2e36', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: 10, color: '#567',
+                        }}>?</div>
+                      )}
+                    </a>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <a href={`/book/${book.googleId}`} style={{
+                        textDecoration: 'none', fontSize: 14, color: '#ccc',
+                        fontWeight: 600, lineHeight: 1.3, display: 'block',
+                        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                      }}>
+                        {book.title}
+                      </a>
+                      {book.authors[0] && (
+                        <div style={{
+                          fontSize: 12, color: '#678', marginTop: 2,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>
+                          {book.authors[0]}
+                        </div>
+                      )}
+                      {book.avgRating && (
+                        <div style={{ fontSize: 13, color: '#C4603A', marginTop: 4 }}>
+                          {RATING_MAP[Math.round(book.avgRating)]}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: '#9ab', marginTop: 4 }}>
+                        {book.activityCount} {book.activityCount === 1 ? 'reader' : 'readers'} this week
+                      </div>
+                      {book.reviewCount > 0 && (
+                        <div style={{ fontSize: 11, color: '#789', marginTop: 2 }}>
+                          {book.reviewCount} {book.reviewCount === 1 ? 'review' : 'reviews'} this week
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {remainingSections.map(section => section.books.length > 0 && (
             <div key={section.label} style={{ marginBottom: 48 }}>
               <div style={{
                 fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
@@ -308,7 +473,7 @@ export default async function DiscoverPage() {
             </div>
           )}
 
-          {sections.every(s => s.books.length === 0) && (
+          {trending.length === 0 && remainingSections.every(s => s.books.length === 0) && (
             <p style={{ color: '#678', fontSize: 14 }}>
               Nothing to show yet. Start logging books to populate this page.
             </p>

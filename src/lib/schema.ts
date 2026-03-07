@@ -178,6 +178,20 @@ export const bookTags = pgTable('book_tags', {
   userIdx: index('book_tags_user_idx').on(t.userId),
 }))
 
+export const reReads = pgTable('re_reads', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    text('user_id').notNull(),
+  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  rating:    integer('rating'),
+  review:    text('review'),
+  readAt:    date('read_at'),
+  format:    text('format'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  userIdx: index('re_reads_user_idx').on(t.userId),
+  bookIdx: index('re_reads_book_idx').on(t.bookId),
+}))
+
 export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
@@ -192,3 +206,4 @@ export type ReviewComment = typeof reviewComments.$inferSelect
 export type Challenge     = typeof challenges.$inferSelect
 export type BookQuote     = typeof bookQuotes.$inferSelect
 export type BookTag       = typeof bookTags.$inferSelect
+export type ReRead        = typeof reReads.$inferSelect

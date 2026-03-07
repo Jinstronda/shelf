@@ -5,11 +5,12 @@ import { ShareCardModal } from './ShareCardModal'
 import { ReviewList } from './ReviewList'
 import { LogBookForm } from './LogBookForm'
 import { QuotesSection } from './QuotesSection'
+import { ReReadSection } from './ReReadSection'
 import { TagsInput } from './TagsInput'
 import type { BookResult } from '@/lib/google-books'
 import type { Review } from './ReviewList'
 import type { UserLog } from './LogBookForm'
-import type { BookQuote } from '@/lib/schema'
+import type { BookQuote, ReRead } from '@/lib/schema'
 import { RATING_MAP } from '@/lib/constants'
 
 interface RelatedBook {
@@ -60,9 +61,10 @@ interface Props {
   communityStats: CommunityStats
   communityReviews: CommunityReview[]
   totalCommunityReviewCount: number
+  userReReads: ReRead[]
 }
 
-export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags, communityStats, communityReviews, totalCommunityReviewCount }: Props) {
+export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags, communityStats, communityReviews, totalCommunityReviewCount, userReReads }: Props) {
   const [shareData, setShareData] = useState<{ rating: number | null, review: string } | null>(null)
   const [revealedCommunity, setRevealedCommunity] = useState<Record<string, boolean>>({})
 
@@ -112,7 +114,17 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
               {book.title}
             </h1>
             <div style={{ fontSize: 15, color: '#9ab' }}>
-              by <span style={{ color: '#ccc', fontWeight: 600 }}>{book.authors.join(', ')}</span>
+              by {book.authors.map((author, i) => (
+                <span key={author}>
+                  {i > 0 && ', '}
+                  <a href={`/author/${encodeURIComponent(author)}`} style={{
+                    color: '#ccc', fontWeight: 600, textDecoration: 'none',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#C4603A'; e.currentTarget.style.textDecoration = 'underline' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#ccc'; e.currentTarget.style.textDecoration = 'none' }}
+                  >{author}</a>
+                </span>
+              ))}
               {book.publisher && <span style={{ color: '#567' }}> · {book.publisher}</span>}
             </div>
             {book.pageCount && (
@@ -144,6 +156,10 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
 
             {bookDbId && (
               <QuotesSection bookDbId={bookDbId} initialQuotes={userQuotes} />
+            )}
+
+            {bookDbId && (
+              <ReReadSection bookDbId={bookDbId} initialReReads={userReReads} />
             )}
 
             {bookDbId && userTags && (
