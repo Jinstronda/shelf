@@ -46,7 +46,28 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
+export const lists = pgTable('lists', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  userId:      text('user_id').notNull(),
+  name:        text('name').notNull(),
+  description: text('description'),
+  isPublic:    boolean('is_public').default(true),
+  createdAt:   timestamp('created_at').defaultNow(),
+  updatedAt:   timestamp('updated_at').defaultNow(),
+})
+
+export const listItems = pgTable('list_items', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  listId:    uuid('list_id').notNull().references(() => lists.id, { onDelete: 'cascade' }),
+  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  position:  integer('position').notNull().default(0),
+  note:      text('note'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 export type Book       = typeof books.$inferSelect
 export type NewBook    = typeof books.$inferInsert
 export type UserBook   = typeof userBooks.$inferSelect
 export type NewUserBook = typeof userBooks.$inferInsert
+export type List       = typeof lists.$inferSelect
+export type ListItem   = typeof listItems.$inferSelect

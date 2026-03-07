@@ -47,6 +47,9 @@ export function BookDetailClient({ book }: { book: BookResult }) {
   const [saving, setSaving]   = useState(false)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied]   = useState(false)
+  const [showLists, setShowLists] = useState(false)
+  const [userLists, setUserLists] = useState<{ id: string, name: string }[]>([])
+  const [addedToList, setAddedToList] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const { data: session } = useSession()
 
@@ -273,7 +276,72 @@ export function BookDetailClient({ book }: { book: BookResult }) {
                   </svg>
                   Share Card
                 </button>
+                {session?.user && (
+                  <div style={{ position: 'relative' }}>
+                    <button onClick={async () => {
+                      if (!showLists) {
+                        const res = await fetch('/api/lists')
+                        if (res.ok) setUserLists(await res.json())
+                      }
+                      setShowLists(!showLists)
+                    }} style={{
+                      background: 'rgba(255,255,255,0.07)', color: '#9ab', border: 'none',
+                      borderRadius: 4, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                      fontFamily: 'inherit', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      List
+                    </button>
+                    {showLists && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, marginTop: 6,
+                        background: '#1c2028', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 6, padding: 8, minWidth: 200, zIndex: 10,
+                        boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
+                      }}>
+                        {userLists.length > 0 ? userLists.map(list => (
+                          <button key={list.id} onClick={async () => {
+                            const addRes = await fetch('/api/books/add', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ googleId: book.googleId }),
+                            })
+                            if (!addRes.ok) return
+                            const dbBook = await addRes.json()
+                            await fetch(`/api/lists/${list.id}/items`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ bookId: dbBook.id }),
+                            })
+                            setAddedToList(list.name)
+                            setShowLists(false)
+                            setTimeout(() => setAddedToList(null), 2000)
+                          }} style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            background: 'none', border: 'none', padding: '8px 12px',
+                            color: '#ccc', fontSize: 13, fontFamily: 'inherit',
+                            cursor: 'pointer', borderRadius: 4,
+                          }}>
+                            {list.name}
+                          </button>
+                        )) : (
+                          <div style={{ padding: '8px 12px', fontSize: 12, color: '#567' }}>
+                            No lists yet. <a href="/lists" style={{ color: '#C4603A' }}>Create one</a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+              {addedToList && (
+                <div style={{ fontSize: 12, color: '#2a5a3a', marginTop: 12, fontWeight: 600 }}>
+                  Added to "{addedToList}"
+                </div>
+              )}
             </div>
           </div>
 
