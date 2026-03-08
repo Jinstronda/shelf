@@ -13,9 +13,13 @@ export async function POST(req: NextRequest) {
   }
 
   let googleId: string
+  let note: string | null = null
   try {
     const body = await req.json()
     googleId = body.googleId
+    if (body.note && typeof body.note === 'string') {
+      note = body.note.trim().slice(0, 500) || null
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
@@ -93,9 +97,17 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       bookId: existing.id,
       status: 'want',
+      notes: note,
     })
     .onConflictDoNothing({ target: [userBooks.userId, userBooks.bookId] })
     .returning()
+
+  if (!result && note) {
+    await db
+      .update(userBooks)
+      .set({ notes: note, updatedAt: new Date() })
+      .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, existing.id)))
+  }
 
   return NextResponse.json(result ?? { status: 'want', alreadyExists: true })
 }
