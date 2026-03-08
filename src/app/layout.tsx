@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Syne } from 'next/font/google'
 import { SessionWrapper } from '@/components/SessionWrapper'
 import { BackToTop } from '@/components/BackToTop'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${cormorant.variable} ${syne.variable}`}>
-      <body><SessionWrapper>{children}</SessionWrapper><BackToTop /><KeyboardShortcuts /></body>
+      <body><SessionWrapper>{children}</SessionWrapper><BackToTop /><KeyboardShortcuts /><Analytics /></body>
     </html>
   )
 }
