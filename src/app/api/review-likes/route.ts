@@ -4,6 +4,8 @@ import { db } from '@/lib/db'
 import { reviewLikes, userBooks, users } from '@/lib/schema'
 import { eq, and, inArray, count, or } from 'drizzle-orm'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -19,6 +21,9 @@ export async function POST(req: NextRequest) {
   }
   if (!reviewId) {
     return NextResponse.json({ error: 'reviewId required' }, { status: 400 })
+  }
+  if (!UUID_RE.test(reviewId)) {
+    return NextResponse.json({ error: 'Invalid reviewId' }, { status: 400 })
   }
 
   const [review] = await db
@@ -63,7 +68,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const ids = req.nextUrl.searchParams.get('ids')?.split(',').filter(Boolean).slice(0, 100) ?? []
+  const ids = req.nextUrl.searchParams
+    .get('ids')
+    ?.split(',')
+    .map(id => id.trim())
+    .filter(id => UUID_RE.test(id))
+    .slice(0, 100) ?? []
   if (ids.length === 0) {
     return NextResponse.json({})
   }

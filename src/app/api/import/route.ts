@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { books, userBooks } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, or } from 'drizzle-orm'
 import { searchGoogleBooks } from '@/lib/google-books'
 import type { BookResult } from '@/lib/google-books'
 import { cacheCoverToR2 } from '@/lib/covers'
 
+export const maxDuration = 300
+
 const MAX_BOOKS = 500
-const DELAY_MS = 200
+const BATCH_SIZE = 10
 
 const SHELF_MAP: Record<string, string> = {
   'read': 'read',
@@ -70,6 +72,20 @@ function parseCSV(text: string): Record<string, string>[] {
   })
 }
 
+async function findBookByIsbn(isbn13: string, isbn10: string): Promise<string | null> {
+  const conditions = []
+  if (isbn13) conditions.push(eq(books.isbn13, isbn13))
+  if (isbn10) conditions.push(eq(books.isbn10, isbn10))
+  if (conditions.length === 0) return null
+
+  const [existing] = await db
+    .select({ id: books.id })
+    .from(books)
+    .where(conditions.length === 1 ? conditions[0] : or(...conditions))
+    .limit(1)
+  return existing?.id ?? null
+}
+
 async function findBook(isbn13: string, isbn10: string, title: string, author: string): Promise<BookResult | null> {
   if (isbn13) {
     const results = await searchGoogleBooks(`isbn:${isbn13}`, 1)
@@ -116,25 +132,109 @@ async function ensureBookInDb(result: BookResult): Promise<string> {
       coverUrl:    result.coverUrl,
       coverSource: result.coverUrl ? 'google' : null,
     })
+    .onConflictDoNothing({ target: books.googleId })
     .returning()
 
-  if (result.coverUrl) {
-    cacheCoverToR2(result.coverUrl, inserted.id).then(r2Key => {
-      if (r2Key) {
-        db.update(books)
-          .set({ coverR2Key: r2Key })
-          .where(eq(books.id, inserted.id))
-          .execute()
-          .catch(console.error)
-      }
-    })
+  if (inserted) {
+    if (result.coverUrl) {
+      cacheCoverToR2(result.coverUrl, inserted.id).then(r2Key => {
+        if (r2Key) {
+          db.update(books)
+            .set({ coverR2Key: r2Key })
+            .where(eq(books.id, inserted.id))
+            .execute()
+            .catch(console.error)
+        }
+      })
+    }
+    return inserted.id
   }
 
-  return inserted.id
+  const [fallback] = await db
+    .select({ id: books.id })
+    .from(books)
+    .where(eq(books.googleId, result.googleId))
+    .limit(1)
+  return fallback!.id
 }
 
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+interface ParsedRow {
+  title: string
+  author: string
+  isbn13: string
+  isbn10: string
+  rating: number | null
+  status: string
+  review: string | null
+  readAt: string | null
+}
+
+function parseRow(row: Record<string, string>): ParsedRow | null {
+  const title = row['Title'] ?? ''
+  if (!title) return null
+
+  const rawRating = row['My Rating'] ?? '0'
+  const grRating = parseInt(rawRating, 10)
+  const rawReview = row['My Review'] ?? ''
+
+  return {
+    title,
+    author: row['Author'] ?? '',
+    isbn13: cleanIsbn(row['ISBN13'] ?? ''),
+    isbn10: cleanIsbn(row['ISBN'] ?? ''),
+    rating: grRating >= 1 && grRating <= 5 ? grRating : null,
+    status: SHELF_MAP[row['Exclusive Shelf'] ?? 'read'] ?? 'read',
+    review: rawReview ? rawReview.replace(/<[^>]*>/g, '').slice(0, 5000) : null,
+    readAt: (row['Date Read'] ?? '').trim() || null,
+  }
+}
+
+async function importSingleBook(
+  parsed: ParsedRow,
+  userId: string,
+): Promise<'imported' | 'skipped'> {
+  const cachedId = await findBookByIsbn(parsed.isbn13, parsed.isbn10)
+  let bookId: string
+
+  if (cachedId) {
+    bookId = cachedId
+  } else {
+    const result = await findBook(parsed.isbn13, parsed.isbn10, parsed.title, parsed.author)
+    if (!result) return 'skipped'
+    bookId = await ensureBookInDb(result)
+  }
+
+  const [existing] = await db
+    .select({ id: userBooks.id, rating: userBooks.rating, review: userBooks.review, readAt: userBooks.readAt })
+    .from(userBooks)
+    .where(and(eq(userBooks.userId, userId), eq(userBooks.bookId, bookId)))
+    .limit(1)
+
+  if (existing) {
+    await db
+      .update(userBooks)
+      .set({
+        status: parsed.status,
+        rating: parsed.rating ?? existing.rating,
+        review: parsed.review ?? existing.review,
+        readAt: parsed.readAt ?? existing.readAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(userBooks.id, existing.id))
+  } else {
+    await db
+      .insert(userBooks)
+      .values({
+        userId,
+        bookId,
+        status: parsed.status,
+        rating: parsed.rating,
+        review: parsed.review,
+        readAt: parsed.readAt,
+      })
+  }
+
+  return 'imported'
 }
 
 export async function POST(req: NextRequest) {
@@ -163,82 +263,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'CSV is empty or invalid' }, { status: 400 })
   }
 
-  const capped = rows.slice(0, MAX_BOOKS)
+  const userId = session.user.id
+  const parsed = rows.slice(0, MAX_BOOKS).map(parseRow).filter((r): r is ParsedRow => r !== null)
+
   let imported = 0
   let skipped = 0
   const errors: string[] = []
 
-  for (let i = 0; i < capped.length; i++) {
-    const row = capped[i]
-    const title = row['Title'] ?? ''
-    const author = row['Author'] ?? ''
-    const rawIsbn13 = row['ISBN13'] ?? ''
-    const rawIsbn10 = row['ISBN'] ?? ''
-    const rawRating = row['My Rating'] ?? '0'
-    const rawShelf = row['Exclusive Shelf'] ?? 'read'
-    const rawReview = row['My Review'] ?? ''
-    const rawDateRead = row['Date Read'] ?? ''
+  for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
+    const batch = parsed.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(
+      batch.map(row => importSingleBook(row, userId))
+    )
 
-    if (!title) {
-      skipped++
-      continue
-    }
-
-    const isbn13 = cleanIsbn(rawIsbn13)
-    const isbn10 = cleanIsbn(rawIsbn10)
-
-    try {
-      const result = await findBook(isbn13, isbn10, title, author)
-      if (!result) {
-        skipped++
-        continue
-      }
-
-      const bookId = await ensureBookInDb(result)
-
-      const grRating = parseInt(rawRating, 10)
-      const rating = grRating >= 1 && grRating <= 5 ? grRating : null
-      const status = SHELF_MAP[rawShelf] ?? 'read'
-      const review = rawReview ? rawReview.replace(/<[^>]*>/g, '').slice(0, 5000) : null
-      const readAt = rawDateRead.trim() || null
-
-      const [existing] = await db
-        .select({ id: userBooks.id, rating: userBooks.rating, review: userBooks.review, readAt: userBooks.readAt })
-        .from(userBooks)
-        .where(and(eq(userBooks.userId, session.user.id), eq(userBooks.bookId, bookId)))
-        .limit(1)
-
-      if (existing) {
-        await db
-          .update(userBooks)
-          .set({
-            status,
-            rating: rating ?? existing.rating,
-            review: review ?? existing.review,
-            readAt: readAt ?? existing.readAt,
-            updatedAt: new Date(),
-          })
-          .where(eq(userBooks.id, existing.id))
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j]
+      if (result.status === 'fulfilled') {
+        if (result.value === 'imported') imported++
+        else skipped++
       } else {
-        await db
-          .insert(userBooks)
-          .values({
-            userId: session.user.id,
-            bookId,
-            status,
-            rating,
-            review,
-            readAt,
-          })
+        const row = batch[j]
+        console.error(`Import error for "${row.title}":`, result.reason)
+        errors.push(`"${row.title}" by ${row.author}: import failed`)
       }
-
-      imported++
-    } catch (err) {
-      console.error(`Import error for "${title}":`, err)
-      errors.push(`"${title}" by ${author}: import failed`)
     }
-
-    if (i < capped.length - 1) await sleep(DELAY_MS)
   }
 
   return NextResponse.json({ imported, skipped, errors })
