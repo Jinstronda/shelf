@@ -62,7 +62,10 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ googleId }),
     })
-    if (!res.ok) throw new Error('Failed to add book')
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => null)
+      throw new Error(errBody?.error ?? `Failed to add book (${res.status})`)
+    }
     return (await res.json()).id
   }
 
@@ -87,7 +90,10 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
           format,
         }),
       })
-      if (!logRes.ok) throw new Error('Failed to save log')
+      if (!logRes.ok) {
+        const errBody = await logRes.json().catch(() => null)
+        throw new Error(errBody?.error ?? `Save failed (${logRes.status})`)
+      }
       setSaved(true)
       setError(null)
       setTimeout(() => setSaved(false), 3000)

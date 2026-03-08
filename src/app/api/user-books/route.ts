@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
     if ((err as { code?: string })?.code === '23503') {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 })
     }
-    throw err
+    console.error('[user-books] POST error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
