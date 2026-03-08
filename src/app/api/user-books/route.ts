@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
   if (dnfReason && dnfReason.length > 500) {
     return NextResponse.json({ error: 'dnfReason must be 500 characters or less' }, { status: 400 })
   }
-  if (review && review.length > 5000) {
-    return NextResponse.json({ error: 'review must be 5000 characters or less' }, { status: 400 })
+  if (review && review.length > 50000) {
+    return NextResponse.json({ error: 'review must be 50000 characters or less' }, { status: 400 })
   }
-  if (notes && notes.length > 5000) {
-    return NextResponse.json({ error: 'notes must be 5000 characters or less' }, { status: 400 })
+  if (notes && notes.length > 50000) {
+    return NextResponse.json({ error: 'notes must be 50000 characters or less' }, { status: 400 })
   }
   if (pagesRead != null && (!Number.isInteger(pagesRead) || pagesRead < 0)) {
     return NextResponse.json({ error: 'pagesRead must be a non-negative integer' }, { status: 400 })

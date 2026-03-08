@@ -162,7 +162,7 @@ export function ReReadSection({ bookDbId, initialReReads }: Props) {
             value={review}
             onChange={e => setReview(e.target.value)}
             placeholder="Notes on this re-read..."
-            maxLength={5000}
+            maxLength={50000}
             rows={3}
             style={{
               width: '100%', background: 'rgba(255,255,255,0.05)',

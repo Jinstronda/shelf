@@ -185,7 +185,7 @@ function parseRow(row: Record<string, string>): ParsedRow | null {
     isbn10: cleanIsbn(row['ISBN'] ?? ''),
     rating: grRating >= 1 && grRating <= 5 ? grRating : null,
     status: SHELF_MAP[row['Exclusive Shelf'] ?? 'read'] ?? 'read',
-    review: rawReview ? rawReview.replace(/<[^>]*>/g, '').slice(0, 5000) : null,
+    review: rawReview ? rawReview.replace(/<[^>]*>/g, '').slice(0, 50000) : null,
     readAt: (row['Date Read'] ?? '').trim() || null,
   }
 }

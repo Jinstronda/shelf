@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
   if (rating !== undefined && rating !== null && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
     return NextResponse.json({ error: 'rating must be 1-5' }, { status: 400 })
   }
-  if (review && review.length > 5000) {
-    return NextResponse.json({ error: 'review must be 5000 characters or less' }, { status: 400 })
+  if (review && review.length > 50000) {
+    return NextResponse.json({ error: 'review must be 50000 characters or less' }, { status: 400 })
   }
   if (readAt != null && (!/^\d{4}-\d{2}-\d{2}$/.test(readAt) || isNaN(Date.parse(readAt)))) {
     return NextResponse.json({ error: 'readAt must be a valid YYYY-MM-DD date' }, { status: 400 })
