@@ -95,7 +95,7 @@ function ExpandableDescription({ raw }: { raw: string }) {
 }
 
 export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags, communityStats, communityReviews, totalCommunityReviewCount, userReReads }: Props) {
-  const [shareData, setShareData] = useState<{ rating: number | null, review: string } | null>(null)
+  const [shareData, setShareData] = useState<{ rating: number | null, review: string, shareExcerpt: string | null } | null>(null)
   const [revealedCommunity, setRevealedCommunity] = useState<Record<string, boolean>>({})
 
   return (
@@ -176,7 +176,7 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
               googleId={book.googleId}
               bookDbId={bookDbId}
               userLog={userLog}
-              onShare={(rating, review) => setShareData({ rating, review })}
+              onShare={(rating, review, shareExcerpt) => setShareData({ rating, review, shareExcerpt })}
             />
 
             {bookDbId && (
@@ -512,6 +512,7 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
           coverUrl={book.coverUrl}
           rating={shareData.rating}
           review={shareData.review}
+          shareExcerpt={shareData.shareExcerpt}
           onClose={() => setShareData(null)}
         />
       )}

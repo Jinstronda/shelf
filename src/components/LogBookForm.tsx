@@ -14,13 +14,14 @@ export interface UserLog {
   readAt: string | null
   dnfReason: string | null
   format: string | null
+  shareExcerpt: string | null
 }
 
 interface Props {
   googleId: string
   bookDbId: string | null
   userLog: UserLog | null
-  onShare: (rating: number | null, review: string) => void
+  onShare: (rating: number | null, review: string, shareExcerpt: string | null) => void
 }
 
 export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
@@ -304,7 +305,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
         }}>
           {getLogButtonLabel()}
         </button>
-        <button onClick={() => onShare(rating, review)} style={{
+        <button onClick={() => onShare(rating, review, userLog?.shareExcerpt ?? null)} style={{
           background: 'rgba(255,255,255,0.07)', color: '#9ab', border: 'none',
           borderRadius: 4, padding: '10px 20px', fontSize: 13, fontWeight: 600,
           fontFamily: 'inherit', cursor: 'pointer',

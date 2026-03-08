@@ -156,6 +156,7 @@ async function getUserLog(bookId: string | null, userId: string) {
         readAt: userBooks.readAt,
         dnfReason: userBooks.dnfReason,
         format: userBooks.format,
+        shareExcerpt: userBooks.shareExcerpt,
       })
       .from(userBooks)
       .where(and(eq(userBooks.bookId, bookId), eq(userBooks.userId, userId)))

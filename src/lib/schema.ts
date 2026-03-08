@@ -32,6 +32,7 @@ export const userBooks = pgTable('user_books', {
   rating:    integer('rating'),   // 1-5 stars
   review:    text('review'),
   notes:     text('notes'),
+  shareExcerpt: text('share_excerpt'),
   readAt:    date('read_at'),
   liked:     boolean('liked').default(false),
   spoiler:   boolean('spoiler').default(false),

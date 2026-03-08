@@ -8,6 +8,7 @@ interface Props {
   coverUrl: string | null
   rating: number | null
   review: string
+  shareExcerpt?: string | null
   onClose: () => void
 }
 
@@ -29,7 +30,7 @@ function truncate(text: string, max: number): string {
   return text.slice(0, cut > 0 ? cut : max) + '\u2026'
 }
 
-export function ShareCardModal({ title, authors, coverUrl, rating, review, onClose }: Props) {
+export function ShareCardModal({ title, authors, coverUrl, rating, review, shareExcerpt, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [format, setFormat] = useState<Format>('story')
   const [coverDataUrl, setCoverDataUrl] = useState<string | null>(null)
@@ -67,7 +68,7 @@ export function ShareCardModal({ title, authors, coverUrl, rating, review, onClo
     await downloadCardImage(cardRef.current, downloadFilename)
   }
 
-  const excerpt = review ? truncate(review, format === 'story' ? 150 : 100) : null
+  const excerpt = shareExcerpt || (review ? truncate(review, format === 'story' ? 150 : 100) : null)
   const displayTitle = truncate(title, 60)
 
   return (
