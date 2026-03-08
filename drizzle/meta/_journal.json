@@ -43,6 +43,13 @@
       "when": 1772921595152,
       "tag": "0005_chubby_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772936498625,
+      "tag": "0006_app_logs",
+      "breakpoints": true
     }
   ]
 }

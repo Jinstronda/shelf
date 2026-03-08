@@ -1,7 +1,8 @@
 import {
   pgTable, uuid, text, integer,
-  timestamp, date, boolean, uniqueIndex, index
+  timestamp, date, boolean, uniqueIndex, index, jsonb
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 export const books = pgTable('books', {
   id:          uuid('id').primaryKey().defaultRandom(),
@@ -197,6 +198,33 @@ export const shelfItems = pgTable('shelf_items', {
   uniqueItem: uniqueIndex('shelf_items_unique').on(t.shelfId, t.bookId),
 }))
 
+export const appLogs = pgTable('app_logs', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  createdAt:   timestamp('created_at').defaultNow().notNull(),
+  level:       text('level').notNull(),
+  message:     text('message').notNull(),
+  service:     text('service').notNull().default('shelf-app'),
+  env:         text('env'),
+  requestId:   text('request_id'),
+  traceId:     text('trace_id'),
+  spanId:      text('span_id'),
+  traceFlags:  text('trace_flags'),
+  route:       text('route'),
+  method:      text('method'),
+  statusCode:  integer('status_code'),
+  userId:      text('user_id'),
+  errorName:   text('error_name'),
+  errorMessage:text('error_message'),
+  stack:       text('stack'),
+  context:     jsonb('context').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+}, (t) => ({
+  createdIdx: index('app_logs_created_idx').on(t.createdAt),
+  levelCreatedIdx: index('app_logs_level_created_idx').on(t.level, t.createdAt),
+  requestIdx: index('app_logs_request_id_idx').on(t.requestId),
+  traceIdx: index('app_logs_trace_id_idx').on(t.traceId),
+  routeCreatedIdx: index('app_logs_route_created_idx').on(t.route, t.createdAt),
+}))
+
 export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
@@ -212,3 +240,4 @@ export type BookTag       = typeof bookTags.$inferSelect
 export type ReRead        = typeof reReads.$inferSelect
 export type Shelf         = typeof shelves.$inferSelect
 export type ShelfItem     = typeof shelfItems.$inferSelect
+export type AppLog        = typeof appLogs.$inferSelect
