@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SiteNav } from './SiteNav'
 import { ShareCardModal } from './ShareCardModal'
 import { ReviewList } from './ReviewList'
@@ -62,6 +62,35 @@ interface Props {
   communityReviews: CommunityReview[]
   totalCommunityReviewCount: number
   userReReads: ReRead[]
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").trim()
+}
+
+function ExpandableDescription({ raw }: { raw: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const clean = useMemo(() => stripHtml(raw), [raw])
+  const isLong = clean.length > 400
+  const display = expanded || !isLong ? clean : clean.slice(0, 400) + '\u2026'
+
+  return (
+    <div style={{ marginBottom: 40 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#567', textTransform: 'uppercase', marginBottom: 16 }}>About this book</div>
+      <p style={{ fontSize: 14, lineHeight: 1.75, color: '#9ab', whiteSpace: 'pre-line' }}>
+        {display}
+      </p>
+      {isLong && (
+        <button onClick={() => setExpanded(!expanded)} style={{
+          background: 'none', border: 'none', color: '#C4603A',
+          fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          fontFamily: 'inherit', padding: 0, marginTop: 8,
+        }}>
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  )
 }
 
 export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs, ratingDistribution, relatedBooks, authorBooks, userLog, userQuotes, userTags, communityStats, communityReviews, totalCommunityReviewCount, userReReads }: Props) {
@@ -139,12 +168,7 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
 
           <div>
             {book.description && (
-              <div style={{ marginBottom: 40 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: '#567', textTransform: 'uppercase', marginBottom: 16 }}>About this book</div>
-                <p style={{ fontSize: 14, lineHeight: 1.75, color: '#9ab' }}>
-                  {book.description.slice(0, 600)}{book.description.length > 600 ? '…' : ''}
-                </p>
-              </div>
+              <ExpandableDescription raw={book.description} />
             )}
 
             <LogBookForm

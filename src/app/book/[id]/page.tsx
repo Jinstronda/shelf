@@ -36,10 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!book) return { title: 'Book not found — Shelf' }
   return {
     title: `${book.title} — Shelf`,
-    description: book.description?.slice(0, 160) ?? `${book.title} by ${book.authors.join(', ')}`,
+    description: book.description?.replace(/<[^>]*>/g, '').slice(0, 160) ?? `${book.title} by ${book.authors.join(', ')}`,
     openGraph: {
       title: book.title,
-      description: book.description?.slice(0, 160) ?? '',
+      description: book.description?.replace(/<[^>]*>/g, '').slice(0, 160) ?? '',
       images: book.coverUrl ? [{ url: book.coverUrl }] : [],
     },
   }

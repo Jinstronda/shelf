@@ -10,7 +10,7 @@ import { cacheCoverToR2 } from '@/lib/covers'
 export const maxDuration = 300
 
 const MAX_BOOKS = 500
-const BATCH_SIZE = 20
+const BATCH_SIZE = 10
 
 const SHELF_MAP: Record<string, string> = {
   'read': 'read',
