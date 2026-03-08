@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_HOSTS = ['books.google.com', 'covers.openlibrary.org', 'm.media-amazon.com', 'images-na.ssl-images-amazon.com']
+const ALLOWED_HOSTS = ['books.google.com', 'covers.openlibrary.org', 'm.media-amazon.com', 'images-na.ssl-images-amazon.com', 'archive.org']
 const ALLOWED_SUFFIX = ['.r2.dev']
 
 export async function GET(req: NextRequest) {

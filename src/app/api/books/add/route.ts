@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       pageCount:   book.pageCount,
       genres:      book.genres,
       language:    book.language,
-      coverUrl:    book.coverUrl ?? await resolveCover({ isbn13: book.isbn13, isbn10: book.isbn10, title: book.title }),
+      coverUrl:    book.coverUrl ?? await resolveCover({ isbn13: book.isbn13, isbn10: book.isbn10, title: book.title, authors: book.authors }),
       coverSource: book.coverUrl ? (googleId.startsWith('ol:') ? 'openlibrary' : 'google') : 'fallback',
     })
     .onConflictDoNothing({ target: books.googleId })

@@ -130,7 +130,7 @@ async function ensureBookInDb(result: BookResult): Promise<string> {
       pageCount:   result.pageCount,
       genres:      result.genres,
       language:    result.language,
-      coverUrl:    result.coverUrl ?? await resolveCover({ isbn13: result.isbn13, isbn10: result.isbn10, title: result.title }),
+      coverUrl:    result.coverUrl ?? await resolveCover({ isbn13: result.isbn13, isbn10: result.isbn10, title: result.title, authors: result.authors }),
       coverSource: result.coverUrl ? 'google' : 'fallback',
     })
     .onConflictDoNothing({ target: books.googleId })
