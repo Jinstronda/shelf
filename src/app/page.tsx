@@ -139,7 +139,7 @@ export default async function HomePage() {
             ? recentlyLogged.map((b, i) => (
                 <a key={b.googleId} href={`/book/${b.googleId}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
                   {b.coverUrl && (
-                    <img src={b.coverUrl} alt={b.title} />
+                    <img src={b.coverUrl} alt={b.title} width={150} height={225} loading="lazy" decoding="async" />
                   )}
                   <div className="card-hover">
                     {b.rating && (
@@ -150,7 +150,7 @@ export default async function HomePage() {
               ))
             : BOOKS_ROW1.map((b, i) => (
                 <a key={b.isbn} href={`/book/${b.isbn}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
-                  <img src={`https://covers.openlibrary.org/b/isbn/${b.isbn}-L.jpg`} alt={b.title} />
+                  <img src={`https://covers.openlibrary.org/b/isbn/${b.isbn}-L.jpg`} alt={b.title} width={150} height={225} loading="lazy" decoding="async" />
                   <div className="card-hover">
                     <span className="card-rating">{b.rating}</span>
                   </div>
@@ -197,7 +197,7 @@ export default async function HomePage() {
             {popularBooks.map((b, i) => (
               <a key={b.googleId} href={`/book/${b.googleId}`} className={`card ${CV[i % 12]}`} style={{ textDecoration: 'none' }}>
                 {b.coverUrl && (
-                  <img src={b.coverUrl} alt={b.title} />
+                  <img src={b.coverUrl} alt={b.title} width={150} height={225} loading="lazy" decoding="async" />
                 )}
                 <div className="card-hover">
                   {b.avgRating && (

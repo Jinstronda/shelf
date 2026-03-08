@@ -4,20 +4,25 @@ import { SessionWrapper } from '@/components/SessionWrapper'
 import { BackToTop } from '@/components/BackToTop'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { Analytics } from '@vercel/analytics/next'
+import { initServerJsonLogging } from '@/lib/logger'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['400', '600', '700'],
+  weight: ['400', '700'],
   style: ['normal', 'italic'],
+  display: 'swap',
   variable: '--font-cormorant',
 })
 
 const syne = Syne({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
   variable: '--font-syne',
 })
+
+initServerJsonLogging()
 
 export const metadata: Metadata = {
   title: 'Shelf — Your reading life, beautifully tracked.',

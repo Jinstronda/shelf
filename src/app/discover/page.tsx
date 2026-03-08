@@ -254,7 +254,8 @@ export default async function DiscoverPage() {
                     <div style={{ position: 'relative' }}>
                       <div className={`card ${CV[i % 12]}`}>
                         {book.coverUrl && (
-                          <img src={book.coverUrl} alt={book.title}
+                          <img src={book.coverUrl} alt={book.title} width={150} height={225}
+                            loading="lazy" decoding="async"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                         <div className="card-hover" />
@@ -308,7 +309,8 @@ export default async function DiscoverPage() {
                     </div>
                     <a href={`/book/${book.googleId}`} style={{ flexShrink: 0 }}>
                       {book.coverUrl ? (
-                        <img src={book.coverUrl} alt={book.title}
+                        <img src={book.coverUrl} alt={book.title} width={50} height={75}
+                          loading="lazy" decoding="async"
                           style={{ width: 50, height: 75, objectFit: 'cover', borderRadius: 3 }} />
                       ) : (
                         <div style={{
@@ -372,7 +374,8 @@ export default async function DiscoverPage() {
                     <div style={{ position: 'relative' }}>
                       <div className={`card ${CV[i % 12]}`}>
                         {book.coverUrl && (
-                          <img src={book.coverUrl} alt={book.title}
+                          <img src={book.coverUrl} alt={book.title} width={150} height={225}
+                            loading="lazy" decoding="async"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                         <div className="card-hover" />
@@ -418,7 +421,8 @@ export default async function DiscoverPage() {
                   }}>
                     <a href={`/book/${r.bookGoogleId}`} style={{ flexShrink: 0 }}>
                       {r.bookCover ? (
-                        <img src={r.bookCover} alt={r.bookTitle}
+                        <img src={r.bookCover} alt={r.bookTitle} width={40} height={60}
+                          loading="lazy" decoding="async"
                           style={{ width: 40, height: 60, objectFit: 'cover', borderRadius: 3 }} />
                       ) : (
                         <div style={{
@@ -438,7 +442,7 @@ export default async function DiscoverPage() {
                       </a>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                         {r.userAvatar ? (
-                          <img src={r.userAvatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                          <img src={r.userAvatar} alt="" width={20} height={20} loading="lazy" decoding="async" style={{ width: 20, height: 20, borderRadius: '50%' }} />
                         ) : (
                           <div style={{
                             width: 20, height: 20, borderRadius: '50%', background: '#2a2e36',

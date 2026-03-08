@@ -17,17 +17,15 @@ function useDataUrl(src: string | null): string | null {
   const [dataUrl, setDataUrl] = useState<string | null>(null)
   useEffect(() => {
     if (!src) return
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = img.naturalWidth
-      c.height = img.naturalHeight
-      c.getContext('2d')!.drawImage(img, 0, 0)
-      setDataUrl(c.toDataURL('image/png'))
-    }
-    img.onerror = () => setDataUrl(null)
-    img.src = src
+    const proxyUrl = `/api/cover-proxy?url=${encodeURIComponent(src)}`
+    fetch(proxyUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        const reader = new FileReader()
+        reader.onloadend = () => setDataUrl(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+      .catch(() => setDataUrl(null))
   }, [src])
   return dataUrl
 }

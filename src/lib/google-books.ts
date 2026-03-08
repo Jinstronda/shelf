@@ -67,7 +67,7 @@ export async function searchGoogleBooks(query: string, limit = 12): Promise<Book
 export async function getGoogleBook(googleId: string): Promise<BookResult | null> {
   const key = process.env.GOOGLE_BOOKS_API_KEY
   const url = `https://www.googleapis.com/books/v1/volumes/${googleId}${key ? `?key=${key}` : ''}`
-  const res = await fetch(url)
+  const res = await fetch(url, { next: { revalidate: 3600 } })
   if (!res.ok) {
     console.error(`[google-books] API returned ${res.status} for ID: ${googleId}`)
     return null

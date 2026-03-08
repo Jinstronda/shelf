@@ -1,7 +1,8 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { SiteNav } from './SiteNav'
-import { ShareCardModal } from './ShareCardModal'
+import dynamic from 'next/dynamic'
+const ShareCardModal = dynamic(() => import('./ShareCardModal').then(m => m.ShareCardModal), { ssr: false })
 import { ReviewList } from './ReviewList'
 import { LogBookForm } from './LogBookForm'
 import { QuotesSection } from './QuotesSection'

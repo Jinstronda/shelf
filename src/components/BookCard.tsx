@@ -16,6 +16,8 @@ export function BookCard({ isbn, title, author, rating, cv }: BookCardProps) {
       <img
         src={coverUrl}
         alt={title}
+        width={150} height={225}
+        loading="lazy" decoding="async"
         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
       />
       <div className="card-hover">

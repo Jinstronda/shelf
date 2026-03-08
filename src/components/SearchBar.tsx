@@ -67,7 +67,7 @@ export function SearchBar() {
             color: '#fff',
             fontFamily: 'inherit',
             fontSize: 11,
-            width: loading ? 170 : 136,
+            width: 160,
             outline: 'none',
             transition: 'all 0.2s',
           }}
@@ -105,7 +105,8 @@ export function SearchBar() {
                 background: '#2a2a2a', borderRadius: 2, overflow: 'hidden',
               }}>
                 {book.coverUrl && (
-                  <img src={book.coverUrl} alt={book.title}
+                  <img src={book.coverUrl} alt={book.title} width={28} height={42}
+                    loading="lazy" decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
               </div>
