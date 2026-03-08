@@ -6,6 +6,7 @@ import { eq, and, or } from 'drizzle-orm'
 import { searchGoogleBooks } from '@/lib/google-books'
 import type { BookResult } from '@/lib/google-books'
 import { cacheCoverToR2 } from '@/lib/covers'
+import { resolveCover } from '@/lib/cover-resolver'
 
 export const maxDuration = 300
 
@@ -129,8 +130,8 @@ async function ensureBookInDb(result: BookResult): Promise<string> {
       pageCount:   result.pageCount,
       genres:      result.genres,
       language:    result.language,
-      coverUrl:    result.coverUrl,
-      coverSource: result.coverUrl ? 'google' : null,
+      coverUrl:    result.coverUrl ?? await resolveCover({ isbn13: result.isbn13, isbn10: result.isbn10, title: result.title }),
+      coverSource: result.coverUrl ? 'google' : 'fallback',
     })
     .onConflictDoNothing({ target: books.googleId })
     .returning()

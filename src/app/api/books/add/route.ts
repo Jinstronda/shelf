@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { getGoogleBook } from '@/lib/google-books'
 import { searchOpenLibrary } from '@/lib/open-library'
 import { cacheCoverToR2, resolveCoverUrl } from '@/lib/covers'
+import { resolveCover } from '@/lib/cover-resolver'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -48,8 +49,8 @@ export async function POST(req: NextRequest) {
       pageCount:   book.pageCount,
       genres:      book.genres,
       language:    book.language,
-      coverUrl:    book.coverUrl,
-      coverSource: book.coverUrl ? (googleId.startsWith('ol:') ? 'openlibrary' : 'google') : null,
+      coverUrl:    book.coverUrl ?? await resolveCover({ isbn13: book.isbn13, isbn10: book.isbn10, title: book.title }),
+      coverSource: book.coverUrl ? (googleId.startsWith('ol:') ? 'openlibrary' : 'google') : 'fallback',
     })
     .onConflictDoNothing({ target: books.googleId })
     .returning()
