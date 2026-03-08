@@ -4,7 +4,6 @@ import { SessionWrapper } from '@/components/SessionWrapper'
 import { BackToTop } from '@/components/BackToTop'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { Analytics } from '@vercel/analytics/next'
-import { initServerJsonLogging } from '@/lib/logger'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -21,8 +20,6 @@ const syne = Syne({
   display: 'swap',
   variable: '--font-syne',
 })
-
-initServerJsonLogging()
 
 export const metadata: Metadata = {
   title: 'Shelf — Your reading life, beautifully tracked.',
