@@ -13,11 +13,12 @@ export interface BookResult {
   language:    string
 }
 
-function mapItem(item: any): BookResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapItem(item: Record<string, any>): BookResult {
   const v = item.volumeInfo ?? {}
   const isbns = v.industryIdentifiers ?? []
-  const isbn13 = isbns.find((x: any) => x.type === 'ISBN_13')?.identifier ?? null
-  const isbn10 = isbns.find((x: any) => x.type === 'ISBN_10')?.identifier ?? null
+  const isbn13 = isbns.find((x: { type: string; identifier: string }) => x.type === 'ISBN_13')?.identifier ?? null
+  const isbn10 = isbns.find((x: { type: string; identifier: string }) => x.type === 'ISBN_10')?.identifier ?? null
 
   // Upgrade to higher-res thumbnail
   let coverUrl = v.imageLinks?.thumbnail ?? v.imageLinks?.smallThumbnail ?? null

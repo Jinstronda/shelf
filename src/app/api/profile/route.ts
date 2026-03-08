@@ -42,8 +42,8 @@ export async function PATCH(req: NextRequest) {
       .where(eq(users.id, session.user.id))
       .returning()
     return NextResponse.json(updated)
-  } catch (err: any) {
-    if (err.code === '23505') {
+  } catch (err: unknown) {
+    if ((err as { code?: string }).code === '23505') {
       return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
     }
     throw err

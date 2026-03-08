@@ -33,6 +33,46 @@ export default async function FollowersPage({ params }: Props) {
   ])
   if (!user) notFound()
 
+  const isOwnProfile = session?.user?.id === id
+  const privacy = user.privacy ?? 'public'
+  const isFollower = session?.user?.id && !isOwnProfile
+    ? (await db.select().from(follows).where(and(eq(follows.followerId, session.user.id), eq(follows.followingId, id))).limit(1)).length > 0
+    : false
+
+  const restricted = !isOwnProfile && (
+    (privacy === 'private') ||
+    (privacy === 'followers' && !isFollower)
+  )
+
+  if (restricted) {
+    return (
+      <>
+        <SiteNav />
+        <div style={{ paddingTop: 80, minHeight: '100vh' }}>
+          <div className="page-content" style={{ maxWidth: 700, margin: '0 auto', padding: '40px 40px 80px' }}>
+            <h1 style={{
+              fontFamily: 'Cormorant Garamond, serif', fontSize: 36,
+              fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 32,
+            }}>
+              {user.name ?? user.username}&apos;s Followers
+            </h1>
+            <div style={{
+              textAlign: 'center', padding: '60px 0', color: '#567',
+              background: '#1c2028', borderRadius: 6,
+            }}>
+              <div style={{ fontSize: 15 }}>
+                {privacy === 'private'
+                  ? 'This profile is private'
+                  : 'This profile is only visible to followers'}
+              </div>
+            </div>
+          </div>
+        </div>
+        <SiteFooter />
+      </>
+    )
+  }
+
   const followerRows = await db
     .select({
       id: users.id,

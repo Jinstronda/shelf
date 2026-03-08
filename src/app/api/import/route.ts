@@ -21,57 +21,53 @@ function cleanIsbn(raw: string): string {
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split('\n')
-  if (lines.length < 2) return []
-
-  const headers = parseLine(lines[0])
-  const rows: Record<string, string>[] = []
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line) continue
-    const values = parseLine(line)
-    const row: Record<string, string> = {}
-    for (let j = 0; j < headers.length; j++) {
-      row[headers[j]] = values[j] ?? ''
-    }
-    rows.push(row)
-  }
-
-  return rows
-}
-
-function parseLine(line: string): string[] {
-  const fields: string[] = []
-  let current = ''
+  const rows: string[][] = []
+  let current: string[] = []
+  let field = ''
   let inQuotes = false
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
     if (inQuotes) {
       if (ch === '"') {
-        if (line[i + 1] === '"') {
-          current += '"'
+        if (text[i + 1] === '"') {
+          field += '"'
           i++
         } else {
           inQuotes = false
         }
       } else {
-        current += ch
+        field += ch
       }
     } else {
       if (ch === '"') {
         inQuotes = true
       } else if (ch === ',') {
-        fields.push(current.trim())
-        current = ''
+        current.push(field)
+        field = ''
+      } else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+        current.push(field)
+        field = ''
+        if (current.length > 1 || current[0] !== '') rows.push(current)
+        current = []
+        if (ch === '\r') i++
       } else {
-        current += ch
+        field += ch
       }
     }
   }
-  fields.push(current.trim())
-  return fields
+  if (field || current.length > 0) {
+    current.push(field)
+    rows.push(current)
+  }
+
+  if (rows.length < 2) return []
+  const headers = rows[0].map(h => h.trim())
+  return rows.slice(1).map(row => {
+    const obj: Record<string, string> = {}
+    headers.forEach((h, i) => { obj[h] = (row[i] ?? '').trim() })
+    return obj
+  })
 }
 
 async function findBook(isbn13: string, isbn10: string, title: string, author: string): Promise<BookResult | null> {

@@ -31,6 +31,7 @@ export function FavoriteBooks({ favorites: initial, isOwner }: Props) {
 
   useEffect(() => {
     if (!editing) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch('/api/user-books?status=read')
       .then(r => r.json())

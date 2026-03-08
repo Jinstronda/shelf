@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { reviewComments, users } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { reviewComments, userBooks, users } from '@/lib/schema'
+import { eq, and, or, asc } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -25,10 +25,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'text must be 1-1000 characters' }, { status: 400 })
   }
 
-  const [comment] = await db
-    .insert(reviewComments)
-    .values({ reviewId, userId: session.user.id, text: text.trim() })
-    .returning()
+  const [review] = await db
+    .select({ userId: userBooks.userId })
+    .from(userBooks)
+    .innerJoin(users, eq(userBooks.userId, users.id))
+    .where(and(
+      eq(userBooks.id, reviewId),
+      or(eq(users.privacy, 'public'), eq(userBooks.userId, session.user.id)),
+    ))
+    .limit(1)
+
+  if (!review) {
+    return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+  }
+
+  let comment
+  try {
+    ;[comment] = await db
+      .insert(reviewComments)
+      .values({ reviewId, userId: session.user.id, text: text.trim() })
+      .returning()
+  } catch {
+    return NextResponse.json({ error: 'Failed to add comment' }, { status: 400 })
+  }
 
   const [user] = await db
     .select({ name: users.name, avatarUrl: users.avatarUrl })

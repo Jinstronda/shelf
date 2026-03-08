@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { userBooks, books, users, follows } from '@/lib/schema'
-import { eq, desc, inArray } from 'drizzle-orm'
+import { eq, desc, inArray, and } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
@@ -12,7 +12,11 @@ export const metadata: Metadata = { title: 'Recent Activity — Shelf' }
 const PAGE_SIZE = 30
 
 async function fetchEntries(filterUserIds?: string[]) {
-  const query = db
+  const baseConditions = filterUserIds
+    ? [inArray(userBooks.userId, filterUserIds)]
+    : [eq(users.privacy, 'public')]
+
+  const rows = await db
     .select({
       id: userBooks.id,
       status: userBooks.status,
@@ -30,13 +34,10 @@ async function fetchEntries(filterUserIds?: string[]) {
     })
     .from(userBooks)
     .innerJoin(books, eq(userBooks.bookId, books.id))
-    .leftJoin(users, eq(userBooks.userId, users.id))
+    .innerJoin(users, eq(userBooks.userId, users.id))
+    .where(and(...baseConditions))
     .orderBy(desc(userBooks.updatedAt))
     .limit(PAGE_SIZE + 1)
-
-  const rows = filterUserIds
-    ? await query.where(inArray(userBooks.userId, filterUserIds))
-    : await query
 
   const hasMore = rows.length > PAGE_SIZE
   const entries = rows.slice(0, PAGE_SIZE).map(r => ({

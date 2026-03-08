@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
-  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt, dnfReason, format } = body as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { bookId, status, rating, review, notes, liked, spoiler, pagesRead, readAt, dnfReason, format } = body as Record<string, any>
 
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
@@ -91,8 +92,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(result)
-  } catch (err: any) {
-    if (err?.code === '23503') {
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === '23503') {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 })
     }
     throw err

@@ -7,14 +7,14 @@ function FlameIcon() {
   )
 }
 
-function StreakCalendar({ last30 }: { last30: string[] }) {
-  const today = new Date()
+function StreakCalendar({ last30, now }: { last30: string[]; now: number }) {
+  const today = new Date(now)
   const todayKey = today.toISOString().slice(0, 10)
   const readSet = new Set(last30)
 
   const days: { key: string; hasReading: boolean; isToday: boolean }[] = []
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000)
+    const d = new Date(now - i * 86400000)
     const key = d.toISOString().slice(0, 10)
     days.push({ key, hasReading: readSet.has(key), isToday: key === todayKey })
   }
@@ -33,11 +33,12 @@ function StreakCalendar({ last30 }: { last30: string[] }) {
   )
 }
 
-export function ReadingStreak({ currentStreak, longestStreak, readingDaysThisYear, last30 }: {
+export function ReadingStreak({ currentStreak, longestStreak, readingDaysThisYear, last30, now }: {
   currentStreak: number
   longestStreak: number
   readingDaysThisYear: number
   last30: string[]
+  now: number
 }) {
   const isNewRecord = currentStreak > 0 && currentStreak >= longestStreak
   const hasActivity = currentStreak > 0 || readingDaysThisYear > 0 || last30.length > 0
@@ -92,7 +93,7 @@ export function ReadingStreak({ currentStreak, longestStreak, readingDaysThisYea
           <div style={statLabel}>Reading Days</div>
         </div>
       </div>
-      <StreakCalendar last30={last30} />
+      <StreakCalendar last30={last30} now={now} />
     </div>
   )
 }

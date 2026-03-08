@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { userBooks, users, books, reviewLikes } from '@/lib/schema'
-import { eq, desc, isNotNull, sql } from 'drizzle-orm'
+import { eq, desc, isNotNull, sql, and } from 'drizzle-orm'
 import { resolveCoverUrl } from '@/lib/covers'
 import { RATING_MAP } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
@@ -31,7 +31,7 @@ export default async function ReviewsPage() {
     .innerJoin(users, eq(userBooks.userId, users.id))
     .innerJoin(books, eq(userBooks.bookId, books.id))
     .leftJoin(reviewLikes, eq(reviewLikes.reviewId, userBooks.id))
-    .where(isNotNull(userBooks.review))
+    .where(and(isNotNull(userBooks.review), eq(users.privacy, 'public')))
     .groupBy(
       userBooks.id, userBooks.review, userBooks.rating, userBooks.liked,
       userBooks.spoiler, userBooks.createdAt, userBooks.userId,

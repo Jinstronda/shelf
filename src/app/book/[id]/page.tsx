@@ -64,8 +64,8 @@ async function getReviews(bookId: string | null) {
         commentCount: sql<number>`(select count(*) from review_comments where review_comments.review_id = ${userBooks.id})`,
       })
       .from(userBooks)
-      .leftJoin(users, eq(userBooks.userId, users.id))
-      .where(eq(userBooks.bookId, bookId))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(and(eq(userBooks.bookId, bookId), eq(users.privacy, 'public')))
       .orderBy(desc(userBooks.updatedAt))
 
     const withReview = rows.filter(r => r.review)
@@ -209,7 +209,8 @@ async function getCommunityStats(bookId: string | null) {
         cnt: sql<number>`count(*)`,
       })
       .from(userBooks)
-      .where(eq(userBooks.bookId, bookId))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(and(eq(userBooks.bookId, bookId), eq(users.privacy, 'public')))
       .groupBy(userBooks.status)
 
     const statusMap = Object.fromEntries(statusRows.map(r => [r.status, Number(r.cnt)]))
@@ -218,11 +219,13 @@ async function getCommunityStats(bookId: string | null) {
       db
         .select({ cnt: sql<number>`count(*)` })
         .from(userBooks)
-        .where(and(eq(userBooks.bookId, bookId), sql`${userBooks.review} IS NOT NULL`)),
+        .innerJoin(users, eq(userBooks.userId, users.id))
+        .where(and(eq(userBooks.bookId, bookId), sql`${userBooks.review} IS NOT NULL`, eq(users.privacy, 'public'))),
       db
         .select({ cnt: sql<number>`count(*)` })
         .from(userBooks)
-        .where(and(eq(userBooks.bookId, bookId), eq(userBooks.liked, true))),
+        .innerJoin(users, eq(userBooks.userId, users.id))
+        .where(and(eq(userBooks.bookId, bookId), eq(userBooks.liked, true), eq(users.privacy, 'public'))),
     ])
 
     return {
@@ -245,6 +248,7 @@ async function getCommunityReviews(bookId: string | null, excludeUserId: string 
     const conditions = [
       eq(userBooks.bookId, bookId),
       sql`${userBooks.review} IS NOT NULL`,
+      eq(users.privacy, 'public'),
     ]
     if (excludeUserId) conditions.push(ne(userBooks.userId, excludeUserId))
 
@@ -261,13 +265,14 @@ async function getCommunityReviews(bookId: string | null, excludeUserId: string 
           userAvatar: users.avatarUrl,
         })
         .from(userBooks)
-        .leftJoin(users, eq(userBooks.userId, users.id))
+        .innerJoin(users, eq(userBooks.userId, users.id))
         .where(and(...conditions))
         .orderBy(desc(userBooks.updatedAt))
         .limit(5),
       db
         .select({ cnt: sql<number>`count(*)` })
         .from(userBooks)
+        .innerJoin(users, eq(userBooks.userId, users.id))
         .where(and(...conditions)),
     ])
 

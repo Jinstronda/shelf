@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { userBooks, books, users, follows } from '@/lib/schema'
-import { eq, desc, inArray, ne, and } from 'drizzle-orm'
+import { eq, desc, inArray, and } from 'drizzle-orm'
 import { resolveCoverUrl } from '@/lib/covers'
 
 export async function GET(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   const conditions = filterUserIds
     ? [inArray(userBooks.userId, filterUserIds)]
-    : [ne(users.privacy, 'private')]
+    : [eq(users.privacy, 'public')]
 
   const rows = await db
     .select({

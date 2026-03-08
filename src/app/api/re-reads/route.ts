@@ -84,8 +84,8 @@ export async function POST(req: NextRequest) {
       .returning()
 
     return NextResponse.json(created, { status: 201 })
-  } catch (err: any) {
-    if (err?.code === '23503') {
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === '23503') {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 })
     }
     throw err

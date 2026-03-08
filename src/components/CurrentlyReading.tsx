@@ -22,6 +22,7 @@ export function CurrentlyReading() {
     fetch('/api/user-books?status=reading')
       .then(r => r.ok ? r.json() : [])
       .then(data => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setBooks(data.map((d: any) => ({
           bookId: d.bookId,
           googleId: d.book.googleId ?? d.book.id,

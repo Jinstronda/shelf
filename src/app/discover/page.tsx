@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { books, userBooks, users } from '@/lib/schema'
-import { eq, desc, count, avg, gte, sql, isNotNull } from 'drizzle-orm'
+import { eq, desc, count, avg, gte, sql, isNotNull, and } from 'drizzle-orm'
 import { resolveCoverUrl } from '@/lib/covers'
 import { RATING_MAP, CARD_VARIANTS as CV } from '@/lib/constants'
 import { SiteNav } from '@/components/SiteNav'
@@ -54,7 +54,8 @@ async function getTrendingBooks(): Promise<DiscoverBook[]> {
       .select(BOOK_COLUMNS)
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
-      .where(gte(userBooks.updatedAt, sevenDaysAgo))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(and(gte(userBooks.updatedAt, sevenDaysAgo), eq(users.privacy, 'public')))
       .groupBy(...BOOK_GROUP_BY)
       .orderBy(desc(count(userBooks.id)))
       .limit(12)
@@ -71,6 +72,8 @@ async function getHighestRated(): Promise<DiscoverBook[]> {
       .select({ ...BOOK_COLUMNS, avgRating: avg(userBooks.rating) })
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(eq(users.privacy, 'public'))
       .groupBy(...BOOK_GROUP_BY)
       .having(gte(count(userBooks.id), 3))
       .orderBy(desc(avg(userBooks.rating)))
@@ -117,11 +120,12 @@ async function getPopularThisWeek(): Promise<PopularBook[]> {
         activityCount: count(userBooks.id),
         avgRating: avg(userBooks.rating),
         reviewCount: sql<number>`count(case when ${userBooks.review} is not null and ${userBooks.updatedAt} >= ${sevenDaysAgo} then 1 end)`,
-        readerCount: sql<number>`(select count(*) from user_books ub2 where ub2.book_id = ${books.id})`,
+        readerCount: sql<number>`(select count(*) from user_books ub2 inner join users u2 on u2.id = ub2.user_id where ub2.book_id = ${books.id} and u2.privacy = 'public')`,
       })
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
-      .where(gte(userBooks.updatedAt, sevenDaysAgo))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(and(gte(userBooks.updatedAt, sevenDaysAgo), eq(users.privacy, 'public')))
       .groupBy(...BOOK_GROUP_BY)
       .orderBy(desc(count(userBooks.id)))
       .limit(6)
@@ -174,7 +178,7 @@ async function getPopularReviews(): Promise<PopularReview[]> {
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
       .innerJoin(users, eq(userBooks.userId, users.id))
-      .where(isNotNull(userBooks.review))
+      .where(and(isNotNull(userBooks.review), eq(users.privacy, 'public')))
       .orderBy(desc(likeCountSq))
       .limit(6)
 

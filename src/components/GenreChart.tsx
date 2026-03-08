@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+
+const subscribe = () => () => {}
 
 export function GenreChart({ data }: { data: { genre: string; count: number }[] }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false)
 
   if (data.length === 0) {
     return (

@@ -25,23 +25,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'googleId required' }, { status: 400 })
   }
 
-  // Already in DB?
-  const existing = await db
-    .select()
-    .from(books)
-    .where(eq(books.googleId, googleId))
-    .limit(1)
-
-  if (existing.length > 0) {
-    const b = existing[0]
-    return NextResponse.json({
-      ...b,
-      coverUrl: resolveCoverUrl(b.coverR2Key, b.coverUrl),
-    })
-  }
-
   // Fetch from source
-  let book = googleId.startsWith('ol:')
+  const book = googleId.startsWith('ol:')
     ? (await searchOpenLibrary(googleId.replace('ol:', ''), 1))[0] ?? null
     : await getGoogleBook(googleId)
 
@@ -49,7 +34,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Book not found' }, { status: 404 })
   }
 
-  // Insert into DB
   const [inserted] = await db
     .insert(books)
     .values({
@@ -67,9 +51,21 @@ export async function POST(req: NextRequest) {
       coverUrl:    book.coverUrl,
       coverSource: book.coverUrl ? (googleId.startsWith('ol:') ? 'openlibrary' : 'google') : null,
     })
+    .onConflictDoNothing({ target: books.googleId })
     .returning()
 
-  // Cache cover to R2 async (don't block response)
+  if (!inserted) {
+    const [existing] = await db
+      .select()
+      .from(books)
+      .where(eq(books.googleId, googleId))
+      .limit(1)
+    return NextResponse.json({
+      ...existing,
+      coverUrl: resolveCoverUrl(existing.coverR2Key, existing.coverUrl),
+    })
+  }
+
   if (book.coverUrl) {
     cacheCoverToR2(book.coverUrl, inserted.id).then(r2Key => {
       if (r2Key) {
@@ -84,6 +80,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ...inserted,
-    coverUrl: book.coverUrl, // return original URL immediately (R2 caches async)
+    coverUrl: book.coverUrl,
   }, { status: 201 })
 }

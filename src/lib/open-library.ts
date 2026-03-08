@@ -15,7 +15,8 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Book
   }
   const data = await res.json()
 
-  return (data.docs ?? []).map((doc: any): BookResult => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data.docs ?? []).map((doc: Record<string, any>): BookResult => {
     const isbn13 = doc.isbn?.find((i: string) => i.length === 13) ?? null
     const isbn10 = doc.isbn?.find((i: string) => i.length === 10) ?? null
     const coverId = doc.cover_i

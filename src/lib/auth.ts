@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (existing) {
           await db.update(users).set({
             name: profile.name ?? existing.name,
-            avatarUrl: (profile as any).picture ?? existing.avatarUrl,
+            avatarUrl: (profile as Record<string, unknown>).picture as string ?? existing.avatarUrl,
           }).where(eq(users.id, user.id))
         } else {
           const username = (profile.email as string).split('@')[0]
@@ -46,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: profile.email as string,
             username,
             name: profile.name ?? null,
-            avatarUrl: (profile as any).picture ?? null,
+            avatarUrl: (profile as Record<string, unknown>).picture as string ?? null,
           })
         }
       } catch (err) {

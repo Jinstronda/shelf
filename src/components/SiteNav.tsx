@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { NavScroll } from './NavScroll'
 import { SearchBar } from './SearchBar'
 import { AuthNav } from './AuthNav'
@@ -8,23 +9,23 @@ import { MobileMenu } from './MobileMenu'
 export function SiteNav() {
   return (
     <NavScroll>
-      <a className="nav-logo" href="/">
+      <Link className="nav-logo" href="/">
         <LogoSVG />
         <span className="nav-logo-text">Shelf</span>
-      </a>
+      </Link>
       <MobileMenu />
       <ul className="nav-links nav-links-desktop">
         <AuthNav />
-        <li><a href="/discover">Discover</a></li>
-        <li><a href="/books">Books</a></li>
-        <li><a href="/shelves">Shelves</a></li>
-        <li><a href="/library">Library</a></li>
-        <li><a href="/journal">Journal</a></li>
-        <li><a href="/reviews">Reviews</a></li>
-        <li><a href="/quotes">Quotes</a></li>
-        <li><a href="/tags">Tags</a></li>
-        <li><a href="/import">Import</a></li>
-        <li><a href="/members">Members</a></li>
+        <li><Link href="/discover">Discover</Link></li>
+        <li><Link href="/books">Books</Link></li>
+        <li><Link href="/shelves">Shelves</Link></li>
+        <li><Link href="/library">Library</Link></li>
+        <li><Link href="/journal">Journal</Link></li>
+        <li><Link href="/reviews">Reviews</Link></li>
+        <li><Link href="/quotes">Quotes</Link></li>
+        <li><Link href="/tags">Tags</Link></li>
+        <li><Link href="/import">Import</Link></li>
+        <li><Link href="/members">Members</Link></li>
       </ul>
       <div className="nav-desktop-only">
         <NotificationBell />

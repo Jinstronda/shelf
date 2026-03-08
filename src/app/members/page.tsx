@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { users, userBooks } from '@/lib/schema'
-import { desc, count, inArray } from 'drizzle-orm'
+import { desc, count, inArray, eq } from 'drizzle-orm'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { MembersSearch } from '@/components/MembersSearch'
@@ -12,6 +12,7 @@ export default async function MembersPage() {
   const allUsers = await db
     .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
     .from(users)
+    .where(eq(users.privacy, 'public'))
     .orderBy(desc(users.createdAt))
     .limit(50)
 

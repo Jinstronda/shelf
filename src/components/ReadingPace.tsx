@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 interface Props {
   pagesPerDay: number
@@ -11,9 +11,10 @@ interface Props {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+const subscribe = () => () => {}
+
 export function ReadingPace({ pagesPerDay, avgDaysPerBook, booksPerMonth, totalBooks, totalPages }: Props) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false)
 
   const max = Math.max(...booksPerMonth.map(d => d.count), 1)
   const currentMonth = new Date().getMonth()

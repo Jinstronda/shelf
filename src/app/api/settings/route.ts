@@ -32,7 +32,7 @@ export async function DELETE() {
 
   const userId = session.user.id
 
-  await Promise.all([
+  await db.batch([
     db.delete(reviewLikes).where(eq(reviewLikes.userId, userId)),
     db.delete(reviewComments).where(eq(reviewComments.userId, userId)),
     db.delete(bookQuotes).where(eq(bookQuotes.userId, userId)),
@@ -40,15 +40,13 @@ export async function DELETE() {
     db.delete(reReads).where(eq(reReads.userId, userId)),
     db.delete(notifications).where(eq(notifications.userId, userId)),
     db.delete(challenges).where(eq(challenges.userId, userId)),
-  ])
-  await Promise.all([
     db.delete(shelves).where(eq(shelves.userId, userId)),
     db.delete(favoriteBooks).where(eq(favoriteBooks.userId, userId)),
     db.delete(userBooks).where(eq(userBooks.userId, userId)),
     db.delete(follows).where(or(eq(follows.followerId, userId), eq(follows.followingId, userId))),
     db.delete(readingGoals).where(eq(readingGoals.userId, userId)),
+    db.delete(users).where(eq(users.id, userId)),
   ])
-  await db.delete(users).where(eq(users.id, userId))
 
   return NextResponse.json({ ok: true })
 }

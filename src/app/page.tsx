@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
-import { books, userBooks } from '@/lib/schema'
-import { eq, desc, count, avg } from 'drizzle-orm'
+import { books, userBooks, users } from '@/lib/schema'
+import { eq, desc, count, avg, and } from 'drizzle-orm'
 import { RATING_MAP, CARD_VARIANTS as CV } from '@/lib/constants'
 import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
@@ -40,6 +40,8 @@ async function getPopularBooks() {
       })
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(eq(users.privacy, 'public'))
       .groupBy(books.id, books.googleId, books.title, books.coverUrl, books.coverR2Key)
       .orderBy(desc(count(userBooks.id)))
       .limit(12)
@@ -70,7 +72,8 @@ async function getRecentlyLogged() {
       })
       .from(userBooks)
       .innerJoin(books, eq(userBooks.bookId, books.id))
-      .where(eq(userBooks.status, 'read'))
+      .innerJoin(users, eq(userBooks.userId, users.id))
+      .where(and(eq(userBooks.status, 'read'), eq(users.privacy, 'public')))
       .orderBy(desc(userBooks.updatedAt))
       .limit(12)
 

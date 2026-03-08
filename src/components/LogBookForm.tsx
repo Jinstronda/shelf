@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { RATINGS } from '@/lib/constants'
@@ -367,7 +368,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
                   </button>
                 )) : (
                   <div style={{ padding: '8px 12px', fontSize: 12, color: '#567' }}>
-                    No shelves yet. <a href="/shelves" style={{ color: '#C4603A' }}>Create one</a>
+                    No shelves yet. <Link href="/shelves" style={{ color: '#C4603A' }}>Create one</Link>
                   </div>
                 )}
               </div>
@@ -410,7 +411,7 @@ export function LogBookForm({ googleId, bookDbId, userLog, onShare }: Props) {
       </div>
       {addedToShelf && (
         <div style={{ fontSize: 12, color: '#2a5a3a', marginTop: 12, fontWeight: 600 }}>
-          Added to "{addedToShelf}"
+          Added to \&ldquo;{addedToShelf}\&rdquo;
         </div>
       )}
       {error && (

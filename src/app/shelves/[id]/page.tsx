@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { shelves, shelfItems, books, userBooks } from '@/lib/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { ShelfDetailClient } from '@/components/ShelfDetailClient'
@@ -73,7 +74,7 @@ export default async function ShelfDetailPage({ params }: Props) {
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontSize: 11, color: '#567', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-              <a href="/shelves" style={{ color: '#567', textDecoration: 'none' }}>Shelves</a> /
+              <Link href="/shelves" style={{ color: '#567', textDecoration: 'none' }}>Shelves</Link> /
             </div>
             <h1 style={{
               fontFamily: 'Cormorant Garamond, serif', fontSize: 36,

@@ -224,6 +224,7 @@ export default async function StatsPage() {
                   longestStreak={streak.longestStreak}
                   readingDaysThisYear={streak.readingDaysThisYear}
                   last30={streak.last30}
+                  now={Date.now()}
                 />
               </div>
 

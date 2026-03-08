@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { reviewLikes } from '@/lib/schema'
-import { eq, and, inArray, count } from 'drizzle-orm'
+import { reviewLikes, userBooks, users } from '@/lib/schema'
+import { eq, and, inArray, count, or } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -21,19 +21,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'reviewId required' }, { status: 400 })
   }
 
+  const [review] = await db
+    .select({ userId: userBooks.userId })
+    .from(userBooks)
+    .innerJoin(users, eq(userBooks.userId, users.id))
+    .where(and(
+      eq(userBooks.id, reviewId),
+      or(eq(users.privacy, 'public'), eq(userBooks.userId, session.user.id)),
+    ))
+    .limit(1)
+
+  if (!review) {
+    return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+  }
+
   const [existing] = await db
     .select()
     .from(reviewLikes)
     .where(and(eq(reviewLikes.userId, session.user.id), eq(reviewLikes.reviewId, reviewId)))
     .limit(1)
 
-  if (existing) {
-    await db.delete(reviewLikes).where(eq(reviewLikes.id, existing.id))
-  } else {
-    await db.insert(reviewLikes).values({
-      userId: session.user.id,
-      reviewId,
-    })
+  try {
+    if (existing) {
+      await db.delete(reviewLikes).where(eq(reviewLikes.id, existing.id))
+    } else {
+      await db.insert(reviewLikes).values({
+        userId: session.user.id,
+        reviewId,
+      })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Failed to update like' }, { status: 400 })
   }
 
   const [{ value }] = await db

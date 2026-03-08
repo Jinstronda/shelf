@@ -124,7 +124,7 @@ export function SearchBar() {
           <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <a href={`/search?q=${encodeURIComponent(query)}`}
               style={{ fontSize: 11, color: '#C4603A', textDecoration: 'none' }}>
-              See all results for "{query}"
+              See all results for &ldquo;{query}&rdquo;
             </a>
           </div>
         </div>

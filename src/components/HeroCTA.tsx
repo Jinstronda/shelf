@@ -13,6 +13,7 @@ export function HeroCTA() {
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-html-link-for-pages
     <a className="hero-cta" href="/api/auth/signin">Get started — it&apos;s free!</a>
   )
 }
