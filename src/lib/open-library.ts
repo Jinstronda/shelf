@@ -1,12 +1,21 @@
 import type { BookResult } from './google-books'
 
-export async function fetchOpenLibraryWork(key: string): Promise<BookResult | null> {
+function olKeyToId(key: string): string {
+  return key.replace(/^\/works\//, '')
+}
+
+function idToOlPath(id: string): string {
+  return `/works/${id}`
+}
+
+export async function fetchOpenLibraryWork(workId: string): Promise<BookResult | null> {
   try {
-    const res = await fetch(`https://openlibrary.org${key}.json`, { next: { revalidate: 3600 } })
+    const path = workId.startsWith('/works/') ? workId : `/works/${workId}`
+    const res = await fetch(`https://openlibrary.org${path}.json`, { next: { revalidate: 3600 } })
     if (!res.ok) return null
     const work = await res.json()
 
-    const editionsRes = await fetch(`https://openlibrary.org${key}/editions.json?limit=1`, { next: { revalidate: 3600 } })
+    const editionsRes = await fetch(`https://openlibrary.org${path}/editions.json?limit=1`, { next: { revalidate: 3600 } })
     const editions = editionsRes.ok ? await editionsRes.json() : { entries: [] }
     const edition = editions.entries?.[0]
 
@@ -30,9 +39,10 @@ export async function fetchOpenLibraryWork(key: string): Promise<BookResult | nu
     )
 
     const desc = typeof work.description === 'string' ? work.description : work.description?.value ?? null
+    const cleanId = olKeyToId(path)
 
     return {
-      googleId: `ol:${key}`,
+      googleId: `ol:${cleanId}`,
       title: work.title ?? 'Unknown',
       authors: authorNames,
       description: desc,
@@ -78,7 +88,7 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Book
       : null
 
     return {
-      googleId:    `ol:${doc.key}`,
+      googleId:    `ol:${olKeyToId(doc.key)}`,
       title:       doc.title ?? 'Unknown',
       authors:     doc.author_name ?? [],
       description: null,

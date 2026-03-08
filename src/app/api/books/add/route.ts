@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { books } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getGoogleBook } from '@/lib/google-books'
-import { searchOpenLibrary } from '@/lib/open-library'
+import { searchOpenLibrary, fetchOpenLibraryWork } from '@/lib/open-library'
 import { cacheCoverToR2, resolveCoverUrl } from '@/lib/covers'
 import { resolveCover } from '@/lib/cover-resolver'
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch from source
   const book = googleId.startsWith('ol:')
-    ? (await searchOpenLibrary(googleId.replace('ol:', ''), 1))[0] ?? null
+    ? (await fetchOpenLibraryWork(googleId.replace('ol:', '')) ?? (await searchOpenLibrary(googleId.replace('ol:', ''), 1))[0] ?? null)
     : await getGoogleBook(googleId)
 
   if (!book) {

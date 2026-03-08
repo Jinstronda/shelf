@@ -21,8 +21,9 @@ const fetchBook = cache(async function fetchBook(id: string) {
     const results = await searchOpenLibrary(id, 1)
     if (results.length > 0) return results[0]
   }
-  // Open Library key - check DB first, then fetch from OL Works API
+  // Open Library key (format: ol:OL21193795W)
   if (id.startsWith('ol:')) {
+    const workId = id.replace('ol:', '')
     const [dbRow] = await db
       .select()
       .from(books)
@@ -44,9 +45,9 @@ const fetchBook = cache(async function fetchBook(id: string) {
         language: dbRow.language ?? 'en',
       }
     }
-    const olResult = await fetchOpenLibraryWork(id.replace('ol:', ''))
+    const olResult = await fetchOpenLibraryWork(workId)
     if (olResult) return olResult
-    const results = await searchOpenLibrary(id.replace('ol:', ''), 1)
+    const results = await searchOpenLibrary(workId, 1)
     if (results.length > 0) return results[0]
   }
   // Google Books ID
