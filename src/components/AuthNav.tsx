@@ -4,9 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 export function AuthNav() {
   const { data: session, status } = useSession()
 
-  if (status === 'loading') {
-    return <li style={{ padding: '0 11px', fontSize: 11, color: '#567' }}>...</li>
-  }
+  if (status === 'loading') return null
 
   if (session?.user) {
     return (
