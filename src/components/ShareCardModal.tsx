@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { copyCardImage, downloadCardImage } from '@/lib/share-image'
 
 interface Props {
@@ -32,8 +32,24 @@ function truncate(text: string, max: number): string {
 export function ShareCardModal({ title, authors, coverUrl, rating, review, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [format, setFormat] = useState<Format>('story')
+  const [coverDataUrl, setCoverDataUrl] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const downloadFilename = `shelf-${title.toLowerCase().replace(/\s+/g, '-')}.png`
+
+  useEffect(() => {
+    if (!coverUrl) return
+    let cancelled = false
+    fetch(`/api/cover-proxy?url=${encodeURIComponent(coverUrl)}`)
+      .then(res => res.ok ? res.blob() : null)
+      .then(blob => {
+        if (!blob || cancelled) return
+        const reader = new FileReader()
+        reader.onloadend = () => { if (!cancelled) setCoverDataUrl(reader.result as string) }
+        reader.readAsDataURL(blob)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [coverUrl])
 
   async function handleCopy() {
     if (!cardRef.current) return
@@ -113,8 +129,8 @@ export function ShareCardModal({ title, authors, coverUrl, rating, review, onClo
                 boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)',
                 flexShrink: 0, background: '#181818',
               }}>
-                {coverUrl && (
-                  <img src={coverUrl} alt=""
+                {(coverDataUrl || coverUrl) && (
+                  <img src={coverDataUrl || coverUrl!} alt=""
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
               </div>
@@ -179,8 +195,8 @@ export function ShareCardModal({ title, authors, coverUrl, rating, review, onClo
                 boxShadow: '0 20px 52px rgba(0,0,0,0.7)',
                 flexShrink: 0, background: '#181818',
               }}>
-                {coverUrl && (
-                  <img src={coverUrl} alt=""
+                {(coverDataUrl || coverUrl) && (
+                  <img src={coverDataUrl || coverUrl!} alt=""
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
               </div>
