@@ -41,7 +41,7 @@ export default async function ShelfDetailPage({ params }: Props) {
     .from(shelfItems)
     .innerJoin(books, eq(shelfItems.bookId, books.id))
     .where(eq(shelfItems.shelfId, id))
-    .orderBy(shelfItems.createdAt)
+    .orderBy(shelfItems.position)
 
   const bookIds = rawItems.map(r => r.books.id)
   const ratingRows = session?.user?.id && bookIds.length > 0
@@ -59,6 +59,7 @@ export default async function ShelfDetailPage({ params }: Props) {
     title: book.title,
     authors: book.authors,
     coverUrl: book.coverUrl,
+    position: item.position,
     ratingLabel: ratingMap.has(book.id) && ratingMap.get(book.id)
       ? RATING_MAP[ratingMap.get(book.id)!] ?? null
       : null,

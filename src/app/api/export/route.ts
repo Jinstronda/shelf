@@ -28,7 +28,7 @@ export async function GET() {
   const lines = rows.map(r => {
     const ub = r.user_books
     const b = r.books
-    const rating = ub.rating ? (ub.rating / 2).toString() : ''
+    const rating = ub.rating ? ub.rating.toString() : ''
     return [
       csvField(b.title),
       csvField(b.authors?.join(', ')),

@@ -179,7 +179,7 @@ export default async function UserProfilePage({ params }: Props) {
   for (const r of ratingRows.rows as unknown as { rating: number; count: number }[]) {
     ratingCounts.set(r.rating, r.count)
   }
-  const ratingBars = Array.from({ length: 10 }, (_, i) => ({
+  const ratingBars = Array.from({ length: 5 }, (_, i) => ({
     rating: i + 1,
     count: ratingCounts.get(i + 1) ?? 0,
     label: RATING_MAP[i + 1] ?? '',

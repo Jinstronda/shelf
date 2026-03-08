@@ -5,15 +5,15 @@ import { SiteFooter } from '@/components/SiteFooter'
 import { BookCard } from '@/components/BookCard'
 import { WantToReadButton } from '@/components/WantToReadButton'
 import { db } from '@/lib/db'
-import { users, lists } from '@/lib/schema'
+import { users, shelves } from '@/lib/schema'
 import { or, and, ilike, eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 
-type Tab = 'books' | 'people' | 'lists'
+type Tab = 'books' | 'people' | 'shelves'
 const TABS: { key: Tab; label: string }[] = [
   { key: 'books', label: 'Books' },
   { key: 'people', label: 'People' },
-  { key: 'lists', label: 'Lists' },
+  { key: 'shelves', label: 'Shelves' },
 ]
 
 const GENRES = ['Fiction', 'Nonfiction', 'Science Fiction', 'Fantasy', 'Mystery', 'Romance', 'Biography', 'History', 'Science', 'Philosophy', 'Poetry', 'Horror']
@@ -24,7 +24,7 @@ interface Props {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { q, genre, tab } = await searchParams
-  const tabLabel = tab === 'people' ? 'People' : tab === 'lists' ? 'Lists' : 'Books'
+  const tabLabel = tab === 'people' ? 'People' : tab === 'shelves' ? 'Shelves' : 'Books'
   if (q && genre) return { title: `"${q}" in ${genre} — Shelf` }
   if (genre) return { title: `${genre} Books — Shelf` }
   if (q) return { title: `"${q}" in ${tabLabel} — Shelf` }
@@ -34,11 +34,11 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function SearchPage({ searchParams }: Props) {
   const { q, genre, tab: rawTab } = await searchParams
   const query = q?.trim() ?? ''
-  const activeTab: Tab = rawTab === 'people' ? 'people' : rawTab === 'lists' ? 'lists' : 'books'
+  const activeTab: Tab = rawTab === 'people' ? 'people' : rawTab === 'shelves' ? 'shelves' : 'books'
 
   let bookResults: Awaited<ReturnType<typeof searchGoogleBooks>> = []
   let userResults: typeof users.$inferSelect[] = []
-  let listResults: { id: string; name: string; description: string | null; creatorName: string | null }[] = []
+  let shelfResults: { id: string; name: string; description: string | null; creatorName: string | null }[] = []
 
   if (activeTab === 'books') {
     const subjectTag = genre
@@ -62,19 +62,19 @@ export default async function SearchPage({ searchParams }: Props) {
     userResults = await db.select().from(users)
       .where(or(ilike(users.username, pattern), ilike(users.name, pattern)))
       .limit(20)
-  } else if (activeTab === 'lists' && query) {
+  } else if (activeTab === 'shelves' && query) {
     const pattern = `%${query}%`
     const rows = await db.select({
-      id: lists.id,
-      name: lists.name,
-      description: lists.description,
+      id: shelves.id,
+      name: shelves.name,
+      description: shelves.description,
       creatorName: users.name,
     })
-      .from(lists)
-      .leftJoin(users, eq(lists.userId, users.id))
-      .where(and(ilike(lists.name, pattern), eq(lists.isPublic, true)))
+      .from(shelves)
+      .leftJoin(users, eq(shelves.userId, users.id))
+      .where(and(ilike(shelves.name, pattern), eq(shelves.isPublic, true)))
       .limit(20)
-    listResults = rows
+    shelfResults = rows
   }
 
   const hasQuery = activeTab === 'books' ? !!(query || genre) : !!query
@@ -290,14 +290,14 @@ export default async function SearchPage({ searchParams }: Props) {
             ) : null
           )}
 
-          {/* List results */}
-          {activeTab === 'lists' && (
-            listResults.length > 0 ? (
+          {/* Shelf results */}
+          {activeTab === 'shelves' && (
+            shelfResults.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {listResults.map(list => (
+                {shelfResults.map(shelf => (
                   <a
-                    key={list.id}
-                    href={`/lists/${list.id}`}
+                    key={shelf.id}
+                    href={`/shelves/${shelf.id}`}
                     style={{
                       display: 'block', padding: '14px 18px', borderRadius: 6,
                       background: 'rgba(255,255,255,0.03)',
@@ -306,16 +306,16 @@ export default async function SearchPage({ searchParams }: Props) {
                     }}
                   >
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#ccc', marginBottom: 4 }}>
-                      {list.name}
+                      {shelf.name}
                     </div>
-                    {list.description && (
+                    {shelf.description && (
                       <div style={{ fontSize: 13, color: '#789', marginBottom: 6, lineHeight: 1.4 }}>
-                        {list.description.length > 100 ? list.description.slice(0, 100) + '...' : list.description}
+                        {shelf.description.length > 100 ? shelf.description.slice(0, 100) + '...' : shelf.description}
                       </div>
                     )}
-                    {list.creatorName && (
+                    {shelf.creatorName && (
                       <div style={{ fontSize: 12, color: '#567' }}>
-                        by {list.creatorName}
+                        by {shelf.creatorName}
                       </div>
                     )}
                   </a>
@@ -323,7 +323,7 @@ export default async function SearchPage({ searchParams }: Props) {
               </div>
             ) : hasQuery ? (
               <div style={{ color: '#567', fontSize: 15, textAlign: 'center', paddingTop: 60 }}>
-                No lists found for &ldquo;{query}&rdquo;.
+                No shelves found for &ldquo;{query}&rdquo;.
               </div>
             ) : null
           )}

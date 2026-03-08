@@ -5,11 +5,9 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 const NAV_LINKS = [
   { href: '/discover', label: 'Discover' },
   { href: '/books', label: 'Books' },
-  { href: '/lists', label: 'Lists' },
   { href: '/shelves', label: 'Shelves' },
   { href: '/library', label: 'Library' },
   { href: '/journal', label: 'Journal' },
-  { href: '/timeline', label: 'Timeline' },
   { href: '/reviews', label: 'Reviews' },
   { href: '/quotes', label: 'Quotes' },
   { href: '/tags', label: 'Tags' },
@@ -55,7 +53,7 @@ export function MobileMenu() {
         onClick={() => setOpen(!open)}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          padding: 6, position: 'relative', lineHeight: 0,
+          padding: 10, position: 'relative', lineHeight: 0,
           alignItems: 'center', justifyContent: 'center',
         }}
         aria-label={open ? 'Close menu' : 'Open menu'}

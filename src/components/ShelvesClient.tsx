@@ -9,7 +9,11 @@ interface ShelfData {
   covers: (string | null)[]
 }
 
-function ShelfCard({ shelf }: { shelf: ShelfData }) {
+interface PublicShelfData extends ShelfData {
+  creatorName: string | null
+}
+
+function ShelfCard({ shelf, creatorName }: { shelf: ShelfData, creatorName?: string | null }) {
   return (
     <a href={`/shelves/${shelf.id}`} className="list-card" style={{
       textDecoration: 'none', display: 'flex', gap: 16,
@@ -37,30 +41,33 @@ function ShelfCard({ shelf }: { shelf: ShelfData }) {
         )}
         <div style={{ fontSize: 11, color: '#456' }}>
           {shelf.itemCount} {shelf.itemCount === 1 ? 'book' : 'books'}
+          {creatorName && <> &middot; {creatorName}</>}
         </div>
       </div>
     </a>
   )
 }
 
-export function ShelvesClient({ initialShelves, isSignedIn }: { initialShelves: ShelfData[], isSignedIn: boolean }) {
+export function ShelvesClient({ initialShelves, isSignedIn, publicShelves }: { initialShelves: ShelfData[], isSignedIn: boolean, publicShelves: PublicShelfData[] }) {
   const [userShelves, setShelves] = useState(initialShelves)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
+  const [isPublic, setIsPublic] = useState(true)
 
   async function handleCreate() {
     if (!name.trim()) return
     const res = await fetch('/api/shelves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description: desc || null }),
+      body: JSON.stringify({ name, description: desc || null, isPublic }),
     })
     if (res.ok) {
       const shelf = await res.json()
       setShelves(prev => [{ ...shelf, itemCount: 0, covers: [] }, ...prev])
       setName('')
       setDesc('')
+      setIsPublic(true)
       setCreating(false)
     }
   }
@@ -95,7 +102,7 @@ export function ShelvesClient({ initialShelves, isSignedIn }: { initialShelves: 
             onChange={e => setName(e.target.value)}
             placeholder="Shelf name"
             autoFocus
-            maxLength={100}
+            maxLength={200}
             style={{
               width: '100%', background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4,
@@ -116,6 +123,17 @@ export function ShelvesClient({ initialShelves, isSignedIn }: { initialShelves: 
               marginBottom: 16,
             }}
           />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#789', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isPublic}
+                onChange={e => setIsPublic(e.target.checked)}
+                style={{ accentColor: '#C4603A' }}
+              />
+              Public
+            </label>
+          </div>
           <button onClick={handleCreate} style={{
             background: '#C4603A', color: '#fff', border: 'none',
             borderRadius: 4, padding: '10px 24px', fontSize: 13,
@@ -135,8 +153,24 @@ export function ShelvesClient({ initialShelves, isSignedIn }: { initialShelves: 
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
           {isSignedIn
-            ? 'No custom shelves yet. Create one to organize your books.'
+            ? 'No shelves yet. Create your first one.'
             : 'Sign in to create and manage shelves.'}
+        </div>
+      )}
+
+      {publicShelves.length > 0 && (
+        <div style={{ marginTop: 48 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+            color: '#567', textTransform: 'uppercase' as const, marginBottom: 16,
+          }}>
+            Community Shelves
+          </div>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {publicShelves.map(shelf => (
+              <ShelfCard key={shelf.id} shelf={shelf} creatorName={shelf.creatorName} />
+            ))}
+          </div>
         </div>
       )}
     </>

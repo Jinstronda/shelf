@@ -243,7 +243,7 @@ export function BookDetailClient({ book, bookDbId, reviews, avgRating, totalLogs
                         fontSize: 22, fontFamily: 'Cormorant Garamond, serif',
                         fontWeight: 700, color: '#C4603A', lineHeight: 1,
                       }}>
-                        {(avgRating / 2).toFixed(1)}
+                        {avgRating.toFixed(1)}
                       </div>
                       <div style={{ fontSize: 11, color: '#567', marginTop: 4 }}>avg rating</div>
                     </div>

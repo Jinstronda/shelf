@@ -1,14 +1,9 @@
 export const RATINGS = [
-  { value: 10, label: '★★★★★' },
-  { value: 9,  label: '★★★★½' },
-  { value: 8,  label: '★★★★'  },
-  { value: 7,  label: '★★★½'  },
-  { value: 6,  label: '★★★'   },
-  { value: 5,  label: '★★½'   },
-  { value: 4,  label: '★★'    },
-  { value: 3,  label: '★½'    },
-  { value: 2,  label: '★'     },
-  { value: 1,  label: '½'     },
+  { value: 5, label: '5' },
+  { value: 4, label: '4' },
+  { value: 3, label: '3' },
+  { value: 2, label: '2' },
+  { value: 1, label: '1' },
 ] as const
 
 export const RATING_MAP: Record<number, string> = Object.fromEntries(

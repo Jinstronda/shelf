@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
       const bookId = await ensureBookInDb(result)
 
       const grRating = parseInt(rawRating, 10)
-      const rating = grRating >= 1 && grRating <= 5 ? grRating * 2 : null
+      const rating = grRating >= 1 && grRating <= 5 ? grRating : null
       const status = SHELF_MAP[rawShelf] ?? 'read'
       const review = rawReview ? rawReview.replace(/<[^>]*>/g, '').slice(0, 5000) : null
       const readAt = rawDateRead.trim() || null

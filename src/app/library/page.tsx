@@ -54,7 +54,7 @@ export default async function LibraryPage({ searchParams }: Props) {
   const status = VALID_STATUSES.includes(params.status as Status) ? (params.status as Status) : null
   const sort: Sort = VALID_SORTS.includes(params.sort as Sort) ? (params.sort as Sort) : 'newest'
   const ratingParam = params.rating ? parseInt(params.rating, 10) : null
-  const rating = ratingParam && ratingParam >= 1 && ratingParam <= 10 ? ratingParam : null
+  const rating = ratingParam && ratingParam >= 1 && ratingParam <= 5 ? ratingParam : null
   const genre = params.genre?.trim() || null
   const view: View = VALID_VIEWS.includes(params.view as View) ? (params.view as View) : 'grid'
   const pageParam = params.page ? parseInt(params.page, 10) : 1

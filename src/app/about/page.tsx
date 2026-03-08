@@ -33,7 +33,7 @@ export default function AboutPage() {
             <p style={{ marginBottom: 24 }}>
               Log every book. Rate on a five-star scale with half stars.
               Write reviews that capture how a book made you feel.
-              Build lists on any theme. Share beautiful cards of your latest reads.
+              Build shelves on any theme. Share beautiful cards of your latest reads.
             </p>
             <p>
               Built for readers who care about books, not algorithms.

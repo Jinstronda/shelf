@@ -44,7 +44,12 @@ body {
 }
 .nav-links a:hover { color: #fff; }
 .nav-links .hl a { color: var(--copper-light); }
-.mobile-menu-btn { display: none; }
+.mobile-menu-btn {
+  display: none; position: relative; z-index: 101;
+  min-width: 44px; min-height: 44px;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
 .nav-links-desktop { display: flex; }
 
 /* Hero */

@@ -28,7 +28,7 @@ export const userBooks = pgTable('user_books', {
   userId:    text('user_id').notNull(),
   bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
   status:    text('status').notNull().default('read'), // 'read' | 'reading' | 'want'
-  rating:    integer('rating'),   // 1-10 (maps to 0.5-5 stars)
+  rating:    integer('rating'),   // 1-5 stars
   review:    text('review'),
   notes:     text('notes'),
   readAt:    date('read_at'),
@@ -55,27 +55,6 @@ export const users = pgTable('users', {
   privacy:   text('privacy').default('public'),
   createdAt: timestamp('created_at').defaultNow(),
 })
-
-export const lists = pgTable('lists', {
-  id:          uuid('id').primaryKey().defaultRandom(),
-  userId:      text('user_id').notNull(),
-  name:        text('name').notNull(),
-  description: text('description'),
-  isPublic:    boolean('is_public').default(true),
-  createdAt:   timestamp('created_at').defaultNow(),
-  updatedAt:   timestamp('updated_at').defaultNow(),
-})
-
-export const listItems = pgTable('list_items', {
-  id:        uuid('id').primaryKey().defaultRandom(),
-  listId:    uuid('list_id').notNull().references(() => lists.id, { onDelete: 'cascade' }),
-  bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
-  position:  integer('position').notNull().default(0),
-  note:      text('note'),
-  createdAt: timestamp('created_at').defaultNow(),
-}, (t) => ({
-  listIdx: index('list_items_list_id_idx').on(t.listId),
-}))
 
 export const follows = pgTable('follows', {
   id:         uuid('id').primaryKey().defaultRandom(),
@@ -200,6 +179,7 @@ export const shelves = pgTable('shelves', {
   description: text('description'),
   isPublic:    boolean('is_public').default(true),
   createdAt:   timestamp('created_at').defaultNow(),
+  updatedAt:   timestamp('updated_at').defaultNow(),
 }, (t) => ({
   userIdx:    index('shelves_user_idx').on(t.userId),
   uniqueName: uniqueIndex('shelves_unique_name').on(t.userId, t.name),
@@ -209,6 +189,8 @@ export const shelfItems = pgTable('shelf_items', {
   id:        uuid('id').primaryKey().defaultRandom(),
   shelfId:   uuid('shelf_id').notNull().references(() => shelves.id, { onDelete: 'cascade' }),
   bookId:    uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  position:  integer('position').notNull().default(0),
+  note:      text('note'),
   createdAt: timestamp('created_at').defaultNow(),
 }, (t) => ({
   shelfIdx:   index('shelf_items_shelf_idx').on(t.shelfId),
@@ -219,8 +201,6 @@ export type Book         = typeof books.$inferSelect
 export type NewBook      = typeof books.$inferInsert
 export type UserBook     = typeof userBooks.$inferSelect
 export type NewUserBook  = typeof userBooks.$inferInsert
-export type List         = typeof lists.$inferSelect
-export type ListItem     = typeof listItems.$inferSelect
 export type Follow       = typeof follows.$inferSelect
 export type FavoriteBook = typeof favoriteBooks.$inferSelect
 export type Notification = typeof notifications.$inferSelect

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { favoriteBooks, userBooks, follows, readingGoals, lists, users, shelves, reReads, notifications, reviewLikes, reviewComments, bookQuotes, challenges, bookTags } from '@/lib/schema'
+import { favoriteBooks, userBooks, follows, readingGoals, users, shelves, reReads, notifications, reviewLikes, reviewComments, bookQuotes, challenges, bookTags } from '@/lib/schema'
 import { eq, or } from 'drizzle-orm'
 
 const VALID_PRIVACY = ['public', 'followers', 'private'] as const
@@ -47,7 +47,6 @@ export async function DELETE() {
     db.delete(userBooks).where(eq(userBooks.userId, userId)),
     db.delete(follows).where(or(eq(follows.followerId, userId), eq(follows.followingId, userId))),
     db.delete(readingGoals).where(eq(readingGoals.userId, userId)),
-    db.delete(lists).where(eq(lists.userId, userId)),
   ])
   await db.delete(users).where(eq(users.id, userId))
 

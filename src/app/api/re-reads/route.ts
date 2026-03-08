@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
   }
-  if (rating !== undefined && rating !== null && (typeof rating !== 'number' || rating < 1 || rating > 10)) {
-    return NextResponse.json({ error: 'rating must be 1-10' }, { status: 400 })
+  if (rating !== undefined && rating !== null && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+    return NextResponse.json({ error: 'rating must be 1-5' }, { status: 400 })
   }
   if (review && review.length > 5000) {
     return NextResponse.json({ error: 'review must be 5000 characters or less' }, { status: 400 })

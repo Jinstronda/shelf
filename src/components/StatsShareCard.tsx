@@ -162,7 +162,5 @@ export function StatsShareCard({ year, booksRead, pagesRead, avgRating, topGenre
 }
 
 function renderStars(rating: number): string {
-  const full = Math.floor(rating / 2)
-  const half = rating % 2 >= 0.5 ? 1 : 0
-  return '\u2605'.repeat(full) + (half ? '\u00BD' : '')
+  return '\u2605'.repeat(Math.round(rating))
 }

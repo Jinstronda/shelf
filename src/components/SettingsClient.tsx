@@ -122,7 +122,7 @@ export function SettingsClient({ initialPrivacy }: { initialPrivacy: string }) {
 
       <p style={{ fontSize: 14, color: '#9aa', lineHeight: 1.6, marginBottom: 16 }}>
         This will permanently delete your account and all associated data, including your
-        reading history, lists, reviews, follows, and favorites. This action cannot be undone.
+        reading history, shelves, reviews, follows, and favorites. This action cannot be undone.
       </p>
 
       {!showConfirm ? (

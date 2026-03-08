@@ -76,9 +76,9 @@ async function getReviews(bookId: string | null) {
 
     const distMap = new Map<number, number>()
     for (const r of rated) distMap.set(r.rating!, (distMap.get(r.rating!) ?? 0) + 1)
-    const ratingDistribution = Array.from({ length: 10 }, (_, i) => ({
-      rating: 10 - i,
-      count: distMap.get(10 - i) ?? 0,
+    const ratingDistribution = Array.from({ length: 5 }, (_, i) => ({
+      rating: 5 - i,
+      count: distMap.get(5 - i) ?? 0,
     }))
 
     return {

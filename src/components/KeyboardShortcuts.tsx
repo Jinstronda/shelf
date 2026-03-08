@@ -10,7 +10,7 @@ const SHORTCUTS = [
   { keys: ['g', 'd'], label: 'Go to discover' },
   { keys: ['g', 's'], label: 'Go to stats' },
   { keys: ['g', 'p'], label: 'Go to profile' },
-  { keys: ['g', 'l'], label: 'Go to lists' },
+  { keys: ['g', 'l'], label: 'Go to shelves' },
   { keys: ['?'], label: 'Toggle this help' },
 ]
 
@@ -21,7 +21,7 @@ const NAV_MAP: Record<string, string> = {
   d: '/discover',
   s: '/stats',
   p: '/profile',
-  l: '/lists',
+  l: '/shelves',
 }
 
 function isTyping(e: KeyboardEvent) {

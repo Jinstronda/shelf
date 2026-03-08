@@ -25,13 +25,13 @@ export function RatingDistribution({ data }: Props) {
   }
 
   const full: { rating: number; count: number }[] = []
-  for (let r = 1; r <= 10; r++) {
+  for (let r = 1; r <= 5; r++) {
     const found = data.find(d => d.rating === r)
     full.push({ rating: r, count: found?.count ?? 0 })
   }
 
   const max = Math.max(...full.map(d => d.count))
-  const barCount = 10
+  const barCount = 5
   const chartWidth = 600
   const chartHeight = 200
   const bottomPad = 36
@@ -40,7 +40,7 @@ export function RatingDistribution({ data }: Props) {
   const barWidth = (chartWidth - barGap * (barCount + 1)) / barCount
 
   function barColor(rating: number): string {
-    const t = (rating - 1) / 9
+    const t = (rating - 1) / 4
     const r = Math.round(68 + (196 - 68) * t)
     const g = Math.round(85 + (96 - 85) * t)
     const b = Math.round(102 + (58 - 102) * t)

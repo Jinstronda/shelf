@@ -3,24 +3,27 @@ import { db } from '@/lib/db'
 import { userBooks, books } from '@/lib/schema'
 import { eq, desc, asc, and, gte, lt } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { resolveCoverUrl } from '@/lib/covers'
 import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { BookEntryRow } from '@/components/BookEntryRow'
 import { DiaryCalendar } from '@/components/DiaryCalendar'
-import { STATUS_LABELS, pillBase, pillActive, pillInactive } from '@/lib/constants'
+import { STATUS_LABELS, RATING_MAP, pillBase, pillActive, pillInactive } from '@/lib/constants'
 import type { Metadata } from 'next'
 
 type Status = 'read' | 'reading' | 'want' | 'dnf'
 type Sort = 'newest' | 'oldest' | 'rating'
+type View = 'list' | 'grid'
 
 interface Props {
-  searchParams: Promise<{ year?: string; status?: string; sort?: string; page?: string }>
+  searchParams: Promise<{ year?: string; status?: string; sort?: string; page?: string; view?: string }>
 }
 
 const PAGE_SIZE = 30
 
 const VALID_STATUSES: Status[] = ['read', 'reading', 'want', 'dnf']
 const VALID_SORTS: Sort[] = ['newest', 'oldest', 'rating']
+const VALID_VIEWS: View[] = ['list', 'grid']
 const SORT_LABELS: Record<Sort, string> = { newest: 'Newest', oldest: 'Oldest', rating: 'Rating' }
 
 function buildFilterHref(base: Record<string, string>, key: string, value: string | null) {
@@ -50,6 +53,7 @@ export default async function JournalPage({ searchParams }: Props) {
   const year = yearParam && yearParam >= 2000 && yearParam <= 2100 ? yearParam : null
   const status = VALID_STATUSES.includes(params.status as Status) ? (params.status as Status) : null
   const sort: Sort = VALID_SORTS.includes(params.sort as Sort) ? (params.sort as Sort) : 'newest'
+  const view: View = VALID_VIEWS.includes(params.view as View) ? (params.view as View) : 'list'
   const pageParam = params.page ? parseInt(params.page, 10) : 1
   const page = pageParam > 0 ? pageParam : 1
 
@@ -57,6 +61,7 @@ export default async function JournalPage({ searchParams }: Props) {
   if (year) currentParams.year = String(year)
   if (status) currentParams.status = status
   if (sort !== 'newest') currentParams.sort = sort
+  if (view !== 'list') currentParams.view = view
 
   const conditions = [eq(userBooks.userId, session.user.id!)]
   if (year) {
@@ -183,9 +188,36 @@ export default async function JournalPage({ searchParams }: Props) {
                 <a key={s} href={buildFilterHref(currentParams, 'sort', s === 'newest' ? null : s)} style={{ ...pill, ...(sort === s ? pillActive : pillInactive) }}>{SORT_LABELS[s]}</a>
               ))}
             </div>
+
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
+              <a
+                href={buildFilterHref(currentParams, 'view', null)}
+                style={{
+                  ...pill, padding: '5px 8px',
+                  ...(view === 'list' ? pillActive : pillInactive),
+                }}
+                aria-label="List view"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                  <line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/>
+                </svg>
+              </a>
+              <a
+                href={buildFilterHref(currentParams, 'view', 'grid')}
+                style={{
+                  ...pill, padding: '5px 8px',
+                  ...(view === 'grid' ? pillActive : pillInactive),
+                }}
+                aria-label="Grid view"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="1" width="5" height="5"/><rect x="10" y="1" width="5" height="5"/><rect x="1" y="10" width="5" height="5"/><rect x="10" y="10" width="5" height="5"/>
+                </svg>
+              </a>
+            </div>
           </div>
 
-          <DiaryCalendar entries={calendarData} year={year} month={null} />
+          {view === 'list' && <DiaryCalendar entries={calendarData} year={year} month={null} />}
 
           {entries.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#567' }}>
@@ -194,6 +226,95 @@ export default async function JournalPage({ searchParams }: Props) {
                 Search for books to log
               </a>
             </div>
+          ) : view === 'grid' ? (
+            <>
+              {Array.from(grouped.entries()).map(([month, items]) => (
+                <div key={month} style={{ marginBottom: 40 }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'baseline', gap: 8,
+                    paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    marginBottom: 16,
+                  }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: '#ccc' }}>
+                      {month}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#567' }}>
+                      {items.length} {items.length === 1 ? 'book' : 'books'}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                    gap: 12,
+                  }}>
+                    {items.map((entry, i) => {
+                      const coverUrl = resolveCoverUrl(entry.book.coverR2Key, entry.book.coverUrl)
+                      return (
+                        <a
+                          key={`${entry.book.googleId}-${i}`}
+                          href={entry.book.googleId ? `/book/${entry.book.googleId}` : '#'}
+                          style={{ textDecoration: 'none', display: 'block' }}
+                        >
+                          <div style={{
+                            aspectRatio: '2/3', borderRadius: 4, overflow: 'hidden',
+                            background: '#1c2028',
+                          }}>
+                            {coverUrl ? (
+                              <img
+                                src={coverUrl}
+                                alt={entry.book.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: '100%', height: '100%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: 8, textAlign: 'center',
+                                fontSize: 11, color: '#567', lineHeight: 1.3,
+                              }}>
+                                {entry.book.title}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            fontSize: 11, color: '#9ab', marginTop: 6,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {entry.book.title}
+                          </div>
+                          {entry.rating && (
+                            <div style={{ fontSize: 11, color: '#C4603A', marginTop: 2 }}>
+                              {RATING_MAP[entry.rating] ?? ''}
+                            </div>
+                          )}
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+              {hasMore && (
+                <div style={{ textAlign: 'center', marginTop: 32 }}>
+                  <a
+                    href={loadMoreHref}
+                    style={{
+                      display: 'block',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#9ab',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 4,
+                      padding: '10px 24px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Load More
+                  </a>
+                </div>
+              )}
+            </>
           ) : (
             <>
               {Array.from(grouped.entries()).map(([month, items]) => (
