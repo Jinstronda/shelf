@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
   }
-  if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+  if (rating != null && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
     return NextResponse.json({ error: 'rating must be 1-5' }, { status: 400 })
   }
   if (status && !['read', 'reading', 'want', 'dnf'].includes(status)) {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (notes && notes.length > 5000) {
     return NextResponse.json({ error: 'notes must be 5000 characters or less' }, { status: 400 })
   }
-  if (pagesRead !== undefined && (!Number.isInteger(pagesRead) || pagesRead < 0)) {
+  if (pagesRead != null && (!Number.isInteger(pagesRead) || pagesRead < 0)) {
     return NextResponse.json({ error: 'pagesRead must be a non-negative integer' }, { status: 400 })
   }
   if (readAt != null && (!/^\d{4}-\d{2}-\d{2}$/.test(readAt) || isNaN(Date.parse(readAt)))) {
