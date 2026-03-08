@@ -43,7 +43,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { name, description, isPublic } = await req.json()
+  let name: string, description: string | undefined, isPublic: boolean | undefined
+  try {
+    const body = await req.json()
+    name = body.name
+    description = body.description
+    isPublic = body.isPublic
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!name?.trim()) {
     return NextResponse.json({ error: 'name required' }, { status: 400 })
   }
@@ -73,7 +81,13 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { id } = await req.json()
+  let id: string
+  try {
+    const body = await req.json()
+    id = body.id
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!id) {
     return NextResponse.json({ error: 'id required' }, { status: 400 })
   }

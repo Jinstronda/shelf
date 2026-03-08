@@ -7,15 +7,16 @@ import { SiteNav } from '@/components/SiteNav'
 import { SiteFooter } from '@/components/SiteFooter'
 import { CurrentlyReading } from '@/components/CurrentlyReading'
 import { Recommendations } from '@/components/Recommendations'
+import { HeroCTA } from '@/components/HeroCTA'
 
 const BOOKS_ROW1 = [
   { isbn: '0679728759', title: 'Blood Meridian',         author: 'Cormac McCarthy',  rating: '★★★★★', cv: 'cv1' },
-  { isbn: '0441013597', title: 'Dune',                   author: 'Frank Herbert',     rating: '★★★★½', cv: 'cv2' },
-  { isbn: '0307387895', title: 'The Road',               author: 'Cormac McCarthy',  rating: '★★★★½', cv: 'cv4' },
+  { isbn: '0441013597', title: 'Dune',                   author: 'Frank Herbert',     rating: '★★★★', cv: 'cv2' },
+  { isbn: '0307387895', title: 'The Road',               author: 'Cormac McCarthy',  rating: '★★★★', cv: 'cv4' },
   { isbn: '0140449132', title: 'Crime and Punishment',   author: 'Dostoyevsky',       rating: '★★★★★', cv: 'cv5' },
   { isbn: '0374529523', title: 'Moby-Dick',              author: 'Herman Melville',  rating: '★★★★',  cv: 'cv3' },
   { isbn: '0140186395', title: 'Anna Karenina',          author: 'Leo Tolstoy',      rating: '★★★★★', cv: 'cv6' },
-  { isbn: '0143039431', title: 'East of Eden',           author: 'John Steinbeck',   rating: '★★★★½', cv: 'cv7' },
+  { isbn: '0143039431', title: 'East of Eden',           author: 'John Steinbeck',   rating: '★★★★★', cv: 'cv7' },
   { isbn: '0679720200', title: 'Brothers Karamazov',     author: 'Dostoyevsky',       rating: '★★★★',  cv: 'cv8' },
   { isbn: '0452284236', title: 'Beloved',                author: 'Toni Morrison',    rating: '★★★★',  cv: 'cv9' },
   { isbn: '0143105426', title: 'Middlemarch',            author: 'George Eliot',     rating: '★★★★',  cv: 'cvb' },
@@ -112,7 +113,7 @@ export default async function HomePage() {
             Save the ones you want to read.<br />
             Tell the world what you think.
           </h1>
-          <a className="hero-cta" href="/api/auth/signin">Get started — it&apos;s free!</a>
+          <HeroCTA />
           <div className="hero-tagline">
             <span>The social network for book lovers.</span>
             <div className="dot" />
@@ -165,7 +166,7 @@ export default async function HomePage() {
           </div>
           <div className="feat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <p>Rate books on a <strong>five-star scale</strong> with half stars to capture exactly how you felt</p>
+            <p>Rate books on a <strong>five-star scale</strong> to capture exactly how you felt</p>
           </div>
           <div className="feat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

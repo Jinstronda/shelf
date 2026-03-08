@@ -31,7 +31,7 @@ export default function AboutPage() {
               and share your taste with friends. Think of it as a diary for your reading life.
             </p>
             <p style={{ marginBottom: 24 }}>
-              Log every book. Rate on a five-star scale with half stars.
+              Log every book. Rate on a five-star scale.
               Write reviews that capture how a book made you feel.
               Build shelves on any theme. Share beautiful cards of your latest reads.
             </p>

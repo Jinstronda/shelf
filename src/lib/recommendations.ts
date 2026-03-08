@@ -17,7 +17,7 @@ export async function getRecommendations(userId: string, limit = 12): Promise<Re
     const likedBooks = await db
       .select({ bookId: userBooks.bookId })
       .from(userBooks)
-      .where(and(eq(userBooks.userId, userId), gte(userBooks.rating, 7)))
+      .where(and(eq(userBooks.userId, userId), gte(userBooks.rating, 4)))
 
     if (likedBooks.length === 0) return []
     const likedBookIds = likedBooks.map(r => r.bookId)
@@ -32,7 +32,7 @@ export async function getRecommendations(userId: string, limit = 12): Promise<Re
       .where(and(
         inArray(userBooks.bookId, likedBookIds),
         ne(userBooks.userId, userId),
-        gte(userBooks.rating, 7),
+        gte(userBooks.rating, 4),
       ))
       .groupBy(userBooks.userId)
       .having(sql`count(${userBooks.id}) >= 2`)
@@ -64,7 +64,7 @@ export async function getRecommendations(userId: string, limit = 12): Promise<Re
       .innerJoin(books, eq(userBooks.bookId, books.id))
       .where(and(
         inArray(userBooks.userId, similarUserIds),
-        gte(userBooks.rating, 7),
+        gte(userBooks.rating, 4),
         ...(userBookIds.length > 0 ? [notInArray(userBooks.bookId, userBookIds)] : []),
       ))
       .groupBy(userBooks.bookId, books.id)

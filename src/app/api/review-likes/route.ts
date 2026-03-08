@@ -10,7 +10,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { reviewId } = await req.json()
+  let reviewId: string
+  try {
+    const body = await req.json()
+    reviewId = body.reviewId
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!reviewId) {
     return NextResponse.json({ error: 'reviewId required' }, { status: 400 })
   }

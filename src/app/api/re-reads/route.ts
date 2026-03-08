@@ -42,7 +42,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { bookId, rating, review, readAt, format } = await req.json()
+  let bookId: string, rating: number | undefined | null, review: string | undefined, readAt: string | undefined | null, format: string | undefined | null
+  try {
+    const body = await req.json()
+    bookId = body.bookId
+    rating = body.rating
+    review = body.review
+    readAt = body.readAt
+    format = body.format
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
@@ -88,7 +98,13 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { id } = await req.json()
+  let id: string
+  try {
+    const body = await req.json()
+    id = body.id
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!id) {
     return NextResponse.json({ error: 'id required' }, { status: 400 })
   }

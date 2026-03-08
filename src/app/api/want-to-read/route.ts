@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { googleId } = await req.json()
+  let googleId: string
+  try {
+    const body = await req.json()
+    googleId = body.googleId
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!googleId || typeof googleId !== 'string') {
     return NextResponse.json({ error: 'googleId required' }, { status: 400 })
   }

@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { bookId, tag } = await req.json()
+  let bookId: string, tag: string
+  try {
+    const body = await req.json()
+    bookId = body.bookId
+    tag = body.tag
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!bookId) {
     return NextResponse.json({ error: 'bookId required' }, { status: 400 })
   }
@@ -65,7 +72,14 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { bookId, tag } = await req.json()
+  let bookId: string, tag: string
+  try {
+    const body = await req.json()
+    bookId = body.bookId
+    tag = body.tag
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!bookId || !tag) {
     return NextResponse.json({ error: 'bookId and tag required' }, { status: 400 })
   }
