@@ -46,7 +46,7 @@ export async function POST() {
           model: 'gpt-4.1-nano',
           messages: [{
             role: 'system',
-            content: 'You extract the single best excerpt from a book review for a share card. The excerpt must be a direct quote from the review (exact words, no rewording). Pick the most impactful, interesting, or emotional part. Must fit in 2 lines (~120 chars max). Return ONLY the excerpt text, no quotes, no attribution.',
+            content: 'Extract the single best VERBATIM quote from this book review for a share card. Rules: 1) MUST be copied word-for-word from the review, zero paraphrasing. 2) MUST be under 140 characters total. 3) Pick the most impactful, quotable line. 4) If the review is under 140 chars, return it as-is. 5) Output ONLY the quote, nothing else. No quotation marks around it.',
           }, {
             role: 'user',
             content: `Book: "${row.title}"\n\nFull review:\n${row.review}`,
