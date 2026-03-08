@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { getGoogleBook } from '@/lib/google-books'
-import { searchOpenLibrary } from '@/lib/open-library'
+import { searchOpenLibrary, fetchOpenLibraryWork } from '@/lib/open-library'
 import { db } from '@/lib/db'
 import { books, userBooks, users, reviewLikes, reviewComments, bookQuotes, bookTags, reReads } from '@/lib/schema'
 import { eq, and, desc, ne, sql, count } from 'drizzle-orm'
@@ -21,8 +21,31 @@ const fetchBook = cache(async function fetchBook(id: string) {
     const results = await searchOpenLibrary(id, 1)
     if (results.length > 0) return results[0]
   }
-  // Open Library key
+  // Open Library key - check DB first, then fetch from OL Works API
   if (id.startsWith('ol:')) {
+    const [dbRow] = await db
+      .select()
+      .from(books)
+      .where(eq(books.googleId, id))
+      .limit(1)
+    if (dbRow) {
+      return {
+        googleId: dbRow.googleId!,
+        title: dbRow.title,
+        authors: dbRow.authors,
+        description: dbRow.description,
+        isbn13: dbRow.isbn13,
+        isbn10: dbRow.isbn10,
+        coverUrl: resolveCoverUrl(dbRow.coverR2Key, dbRow.coverUrl),
+        publisher: dbRow.publisher,
+        published: dbRow.published,
+        pageCount: dbRow.pageCount,
+        genres: dbRow.genres ?? [],
+        language: dbRow.language ?? 'en',
+      }
+    }
+    const olResult = await fetchOpenLibraryWork(id.replace('ol:', ''))
+    if (olResult) return olResult
     const results = await searchOpenLibrary(id.replace('ol:', ''), 1)
     if (results.length > 0) return results[0]
   }
