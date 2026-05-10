@@ -39,10 +39,10 @@ jobs:
           fi
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=${{ steps.env.outputs.env }} --token=$VERCEL_TOKEN
+        run: vercel pull --yes --environment=${{ steps.env.outputs.env }} --token="$VERCEL_TOKEN"
 
       - name: Build
-        run: vercel build ${{ steps.env.outputs.prod_flag }} --token=$VERCEL_TOKEN
+        run: vercel build ${{ steps.env.outputs.prod_flag }} --token="$VERCEL_TOKEN"
 
       - name: Deploy
-        run: vercel deploy --prebuilt ${{ steps.env.outputs.prod_flag }} --token=$VERCEL_TOKEN
+        run: vercel deploy --prebuilt ${{ steps.env.outputs.prod_flag }} --token="$VERCEL_TOKEN"
