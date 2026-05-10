@@ -21,10 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
-
-      - name: Enable corepack (pnpm/yarn/bun support)
-        run: corepack enable
+          node-version: 20
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -34,18 +31,10 @@ jobs:
         run: |
           DEFAULT="${{ github.event.repository.default_branch }}"
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_name }}" = "$DEFAULT" ]; then
-            echo "env=production" >> $GITHUB_OUTPUT
             echo "prod_flag=--prod" >> $GITHUB_OUTPUT
           else
-            echo "env=preview" >> $GITHUB_OUTPUT
             echo "prod_flag=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=${{ steps.env.outputs.env }} --token="$VERCEL_TOKEN"
-
-      - name: Build
-        run: vercel build ${{ steps.env.outputs.prod_flag }} --token="$VERCEL_TOKEN"
-
-      - name: Deploy
-        run: vercel deploy --prebuilt ${{ steps.env.outputs.prod_flag }} --token="$VERCEL_TOKEN"
+      - name: Deploy to Vercel
+        run: vercel deploy ${{ steps.env.outputs.prod_flag }} --token="$VERCEL_TOKEN" --yes
